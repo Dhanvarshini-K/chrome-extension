@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "NUI Chat gpt extension",
-  "version": "1.0",
+  "version": "1.7",
   "description": "A Chrome extension that integrates with ChatGPT to provide AI-powered assistance.",
   "permissions": ["storage", "scripting", "activeTab"],
   "action": {
