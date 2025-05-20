@@ -1,19 +1,19 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import "./App.css";
-import Chatgpt from "./ChatGpt";
+import Home from "./pages/Home/Home";
 import Perplexity from "./Perplexity";
 
 const ai = import.meta.env.VITE_AI;
 
 function App() {
-  const renderAi = () => {
+    const renderAi = () => {
     switch (ai) {
       case "chatgpt":
-        return <Chatgpt />;
+        return <Home />;
       case "perplexity":
         return <Perplexity />;
       default:
-        return <Chatgpt />;
+        return <Home />;
     }
   };
 

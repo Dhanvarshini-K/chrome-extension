@@ -1,0 +1,46 @@
+.inputClassname {
+  width: 100%;
+  display: block;
+  padding: 11px 0;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  margin-bottom: 3px;
+  cursor: pointer;
+  background-color: #f9f9f9;
+}
+
+.errorMessage {
+  color: red;
+  margin-bottom: 3px;
+  font-size: 12px;
+}
+
+.file-name {
+  font-size: 14px;
+  color: black;
+  word-break: break-all;
+}
+
+.upload-button {
+  padding: 10px;
+  background-color: #007bff;
+  color: white;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: "background-color 0.3s";
+}
+
+.upload-container {
+  display: flex;
+  flex-direction: column;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.home-container {
+    padding: 1rem;
+    width: 300px;
+    font-family: "Arial, sans-serif" ;
+}
