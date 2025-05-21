@@ -1,8 +1,13 @@
 import { useState } from "react";
 import Button from "../../components/button/Button";
 import "./Home.css";
+import { setCSVData } from "../../utils";
 
-const Home = () => {
+interface HomeProps {
+  goQueryList: () => void
+}
+
+const Home = ({goQueryList}: HomeProps) => {
   const [file, setFile] = useState<any>(null);
   const [error, setError] = useState("");
 
@@ -23,6 +28,7 @@ const Home = () => {
   };
 
   const handleSubmit = (e?: any) => {
+    console.log("enter")
     e.preventDefault();
 
     if (!file) {
@@ -30,22 +36,45 @@ const Home = () => {
       return;
     }
 
-    console.log("CSV file submitted:", file);
+    const reader = new FileReader();
+    reader.onload = () => {
+      const text = reader.result as string;
+
+      const lines = text
+        .trim()
+        .split("\n")
+        .map((line) => line.replace(/^"|"$/g, ""));
+
+      const dataObjects = lines
+        .slice(1)
+        .filter((line) => line.trim() !== "") //FILTER OUT EMPTY LINES
+        .map((line) => {
+          const [OID, ...queryParts] = line.split(",");
+          const query = queryParts.join(",").trim();
+          return {
+            OID: OID.trim(),
+            query: query,
+          };
+        });
+
+      setCSVData(dataObjects);
+      goQueryList()
+    };
+
+    reader.readAsText(file);
   };
 
   return (
     <div className="home-container">
-      <h2 style={{ fontSize: "1.5rem", marginBottom: "1rem" }}>
-        Upload Query Data Set
-      </h2>
+      <h2 className="header">Upload Query Data Set</h2>
 
-      <form onSubmit={handleSubmit} className="form-container">
+      <form className="form-container">
         <input
           type="file"
           id="csvFileInput"
           accept=".csv"
           onChange={handleFileChange}
-          style={{ display: "none" }}
+          className="input-container"
         />
         <div className="data-container">
           <div className="upload-container">
@@ -54,7 +83,7 @@ const Home = () => {
             </label>
           </div>
 
-          <Button buttonText="Submit" />
+          <Button buttonText="Submit" onClick={handleSubmit}/>
         </div>
         {error && <div className="errorMessage">{error}</div>}
         {file && <span className="file-name">{file?.name}</span>}

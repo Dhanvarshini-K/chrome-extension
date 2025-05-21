@@ -15,3 +15,18 @@
 .breadcrumb-link:hover {
   color: #2c80b4;
 }
+
+.breadcrumb-container{
+  display: flex;
+  gap: 20px;
+  align-items: center;
+}
+
+.breadcrumb-item {
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.breadcrumb-separator {
+  padding-right: 10px;
+}

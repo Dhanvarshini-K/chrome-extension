@@ -44,7 +44,6 @@
 .home-container {
     padding: 1rem;
     width: 300px;
-    font-family: "Arial, sans-serif" ;
 }
 
 .data-container {
@@ -56,4 +55,13 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+.header {
+  font-size: 25px;
+  margin-bottom: 30px;
+}
+
+.input-container {
+  display: none;
 }
