@@ -8,9 +8,11 @@ export function openDB(): Promise<IDBDatabase> {
 
     request.onupgradeneeded = (event) => {
       const db = (event.target as IDBOpenDBRequest).result;
-      if (!db.objectStoreNames.contains(STORE_NAME)) {
-        db.createObjectStore(STORE_NAME, { keyPath: "timestamp" });
+      if (db.objectStoreNames.contains(STORE_NAME)) {
+        db.deleteObjectStore(STORE_NAME);
       }
+
+      db.createObjectStore(STORE_NAME, { keyPath: "chatId" });
     };
 
     request.onsuccess = () => resolve(request.result);
@@ -18,7 +20,11 @@ export function openDB(): Promise<IDBDatabase> {
   });
 }
 
-export async function saveToIndexedDB(payload: any) {
+export async function saveToIndexedDB(payload: { chatId: string | number; [key: string]: any }) {
+  if (!payload.chatId) {
+    throw new Error("Payload must have a 'chatId' field.");
+  }
+
   const db = await openDB();
   const tx = db.transaction(STORE_NAME, "readwrite");
   const store = tx.objectStore(STORE_NAME);
@@ -31,7 +37,6 @@ export async function saveToIndexedDB(payload: any) {
     tx.onabort = () => reject(tx.error);
   });
 }
-
 
 export async function getAllFromIndexedDB(): Promise<any[]> {
   const db = await openDB();
