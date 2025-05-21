@@ -1,0 +1,17 @@
+.breadcrumbs {
+  margin: 0.5rem 0;
+  font-size: 0.9rem;
+}
+
+.breadcrumb-link {
+  background: none;
+  border: none;
+  color: #3498db;
+  cursor: pointer;
+  text-decoration: underline;
+  font-size: inherit;
+}
+
+.breadcrumb-link:hover {
+  color: #2c80b4;
+}
