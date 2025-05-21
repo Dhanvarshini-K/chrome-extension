@@ -6,13 +6,21 @@ import type { ChatGptTabsType } from "./types/chatgpt.type";
 import CopyButton from "./components/CopyButton/CopyButton";
 import { getAllFromIndexedDB, saveToIndexedDB } from "./helpers/indexedDB/indexedDB";
 import Button from "./components/button/Button";
+import Breadcrumbs from "./components/Breadcrumbs/Breadcrumbs";
 
 type ExtractedData = {
   html: string;
   text: string;
 };
 
-function Chatgpt() {
+interface ChatGptProps {
+  goBack?: () => void;
+  goHome: () => void;
+  goQueryList: () => void;
+  queryData: any
+}
+
+const Chatgpt = ({goHome, goQueryList, queryData}: ChatGptProps ) => {
   const [data, setData] = useState<ExtractedData>({ html: "", text: "" });
   const [citations, setCitations] = useState<string>("");
   const [activeTab, setActiveTab] = useState<ChatGptTabsType>("");
@@ -298,8 +306,12 @@ function Chatgpt() {
     }
   }
 
+  const {OID, query} = queryData
+
   return (
     <div style={{ padding: "1rem", width: 320, fontFamily: "Arial, sans-serif" }}>
+
+      <Breadcrumbs showHome showQueryList onHomeClick={goHome} onQueryListClick={goQueryList}/>
       <h2 style={{ fontSize: "1.5rem", marginBottom: "1rem", textAlign: "center" }}>
         Query Details
       </h2>
@@ -316,7 +328,7 @@ function Chatgpt() {
         <div style={{ marginBottom: "0.5rem" }}>
           <strong>Query ID:</strong>
           <div style={{ display: "flex", justifyContent: "space-between" }}>
-            <span>{""}</span>
+            <span>{OID}</span>
             <CopyButton value={""} />
           </div>
         </div>
@@ -324,7 +336,7 @@ function Chatgpt() {
         <div style={{ marginBottom: "0.5rem" }}>
           <strong>Query:</strong>
           <div style={{ display: "flex", justifyContent: "space-between" }}>
-            <span>{""}</span>
+            <span>{query}</span>
             <CopyButton value={""} />
 
           </div>

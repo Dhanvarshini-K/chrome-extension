@@ -1,24 +1,35 @@
+import React from "react";
+import { FaHome } from "react-icons/fa";
 import "./Breadcrumbs.css";
 
 interface BreadcrumbsProps {
-  path: string[];
-  onNavigate: (label: string) => void;
+  showHome: boolean;
+  showQueryList: boolean;
+  onHomeClick: () => void;
+  onQueryListClick?: () => void;
 }
 
-const Breadcrumbs = ({ path, onNavigate }: BreadcrumbsProps) => {
+const Breadcrumbs: React.FC<BreadcrumbsProps> = ({
+  showHome,
+  showQueryList,
+  onHomeClick,
+  onQueryListClick,
+}) => {
   return (
-    <div className="breadcrumbs">
-      {path.map((label, index) => (
-        <span key={index}>
-          <button
-            className="breadcrumb-link"
-            onClick={() => onNavigate(label)}
-          >
-            {label}
-          </button>
-          {index < path.length - 1 && " / "}
+    <div className="breadcrumb-container">
+      {showHome && (
+        <span className="breadcrumb-item" onClick={onHomeClick}>
+          <FaHome size={20}/>
         </span>
-      ))}
+      )}
+      {showQueryList && (
+        <div>
+          <span className="breadcrumb-separator">/</span>
+          <span className="breadcrumb-item" onClick={onQueryListClick}>
+            Query List
+          </span>
+        </div>
+      )}
     </div>
   );
 };
