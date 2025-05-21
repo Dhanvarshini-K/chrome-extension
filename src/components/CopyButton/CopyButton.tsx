@@ -1,4 +1,5 @@
 import React from "react";
+import Button from "../button/Button";
 
 const CopyIcon = () => (
   <svg
@@ -24,9 +25,9 @@ const CopyButton: React.FC<CopyButtonProps> = ({ value }) => {
   };
 
   return (
-    <button title="Copy" onClick={handleCopy}>
+    <Button onClick={handleCopy}>
       <CopyIcon />
-    </button>
+    </Button>
   );
 };
 

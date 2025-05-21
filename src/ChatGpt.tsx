@@ -5,6 +5,7 @@ import { extractIdFromPath } from "./helpers/chatgpt/extractId";
 import type { ChatGptTabsType } from "./types/chatgpt.type";
 import CopyButton from "./components/CopyButton/CopyButton";
 import { getAllFromIndexedDB, saveToIndexedDB } from "./helpers/indexedDB/indexedDB";
+import Button from "./components/button/Button";
 
 type ExtractedData = {
   html: string;
@@ -128,7 +129,7 @@ function Chatgpt() {
     const markdownSingleLine = markdown
       .replace(/\s+/g, " ")
       .replace(/\t/g, " ")
-      .replace(/\n/g, " ")
+      .replace(/\n/g, "##NEWLINE##")
       .trim();
 
     return { htmlSingleLine, markdownSingleLine };
@@ -195,36 +196,30 @@ function Chatgpt() {
   };
 
   const savePayload = async () => {
-  console.log('data in savePayload', data);
+    console.log('data in savePayload', data);
 
-  const queryId = id;
-  const html = data.html || "";
-  const text = data.text || "";
-  const markdown = output?.markdownSingleLine || "";
-  const formattedHTML = output?.htmlSingleLine || "";
-  const sources = citations || "";
-  const timestamp = formattedDate;
+    const responseText = output?.markdownSingleLine || "";
+    const responseHTML = output?.htmlSingleLine || "";
+    const sources = (citations.includes("No content found") && !citations.startsWith('[')) ? "" : citations;    
+    const timestamp = formattedDate;
 
-  const payload = {
-    chatId: id,
-    queryId,
-    query: text,
-    html,
-    formattedHTML,
-    markdown,
-    citations: sources,
-    timestamp,
+    const payload = {
+      chatId: id,
+      responseText,
+      responseHTML,
+      citations: sources,
+      timestamp,
+    };
+
+    try {
+      await saveToIndexedDB(payload);
+      console.log("Saved to IndexedDB:", payload);
+      alert("Saved successfully to IndexedDB!");
+    } catch (error) {
+      console.error("Error saving to IndexedDB:", error);
+      alert("Error saving data.");
+    }
   };
-
-  try {
-    await saveToIndexedDB(payload);
-    console.log("Saved to IndexedDB:", payload);
-    alert("Saved successfully to IndexedDB!");
-  } catch (error) {
-    console.error("Error saving to IndexedDB:", error);
-    alert("Error saving data.");
-  }
-};
 
 
   const handleSave = async () => {
@@ -240,67 +235,68 @@ function Chatgpt() {
   };
 
 
-async function handleExtract() {
-  try {
-    const allData = await getAllFromIndexedDB();
-    
-    if (allData.length === 0) {
-      console.error("No data found in IndexedDB.");
-      return;
+  async function handleExtract() {
+    try {
+      const allData = await getAllFromIndexedDB();
+
+      if (allData.length === 0) {
+        console.error("No data found in IndexedDB.");
+        return;
+      }
+
+      const headers = [
+        "chatid",
+        "responseText",
+        "responseHTML",
+        "sources",
+        "responseImage",
+        "perfdata",
+        "agent",
+        "timestamp",
+      ];
+
+     function escapeTSVField(value:string) {
+        return `"${String(value)
+            .replace(/"/g, '""')       // Escape double quotes
+            .replace(/\t/g, ' ')       // Replace tab characters with space
+            .replace(/\r?\n/g, '\n')   // Normalize newlines
+        }"`;
     }
 
-    const headers = [
-      "chatid",
-      "queryId",
-      "query",
-      "responseText",
-      "responseHTML",
-      "sources",
-      "responseImage",
-      "perfdata",
-      "agent",
-      "timestamp",
-    ];
+      const rows = allData.map((data: any) => {
+        const { chatId, citations, responseText, responseHTML, timestamp } = data;
+        const sanitizedResponseText = escapeTSVField(responseText);
+        const sanitizedResponseHTML = escapeTSVField(responseHTML);
+        return [
+          escapeTSVField(chatId || ""),
+          sanitizedResponseText,
+          sanitizedResponseHTML,
+          escapeTSVField(citations || ""),
+          escapeTSVField("6.png"),
+          escapeTSVField("{}"),
+          escapeTSVField("v-bvenkatesa"),
+          escapeTSVField(timestamp || ""),
+        ].join('\t');
+      });
 
-    const rows: string[] = [];
+      const tsvContent = [headers.join('\t'), ...rows].join('\n');
 
-    allData.forEach((data: any) => {
-      const { chatId, queryId, query, html, text, citations, timestamp } = data;
+      const blob = new Blob([tsvContent], {
+        type: 'text/tab-separated-values;charset=utf-8;',
+      });
 
-      const values = [
-        chatId || "",  
-        queryId || "",  
-        query || "",  
-        text || "",
-        html || "",
-        citations || "",
-        "",
-        "{}", 
-        "v-bvenkatesa",  
-        timestamp || new Date().toISOString(), 
-      ].map((value) =>
-        typeof value === "string" ? value.replace(/\t/g, " ").replace(/\n/g, " ") : value
-      );
-
-      rows.push(values.join("\t"));
-    });
-
-    const tsvContent = headers.join("\t") + "\n" + rows.join("\n");
-
-    const blob = new Blob([tsvContent], { type: "text/tab-separated-values" });
-
-    const url = URL.createObjectURL(blob);
-
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `chatgpt_export_${new Date().toISOString()}.tsv`;
-    a.click();
-
-    URL.revokeObjectURL(url);
-  } catch (error) {
-    console.error("Error in handleExtract:", error);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = "output.tsv";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Error in handleExtract:", error);
+    }
   }
-}
 
   return (
     <div style={{ padding: "1rem", width: 320, fontFamily: "Arial, sans-serif" }}>
@@ -320,15 +316,15 @@ async function handleExtract() {
         <div style={{ marginBottom: "0.5rem" }}>
           <strong>Query ID:</strong>
           <div style={{ display: "flex", justifyContent: "space-between" }}>
-            <span>3454</span>
-            <CopyButton value={"3454"} />
+            <span>{""}</span>
+            <CopyButton value={""} />
           </div>
         </div>
 
         <div style={{ marginBottom: "0.5rem" }}>
           <strong>Query:</strong>
           <div style={{ display: "flex", justifyContent: "space-between" }}>
-            <span>{id}</span>
+            <span>{""}</span>
             <CopyButton value={""} />
 
           </div>
@@ -365,7 +361,7 @@ async function handleExtract() {
       </div>
 
       <div className="button-container" style={{ marginBottom: "1rem" }}>
-        <button
+        <Button
           onClick={removeDiv}
           style={{
             backgroundColor: "#e74c3c",
@@ -378,7 +374,7 @@ async function handleExtract() {
           }}
         >
           Remove Related Divs
-        </button>
+        </Button>
       </div>
 
       <div
@@ -389,7 +385,7 @@ async function handleExtract() {
         }}
       >
         {["html", "markdown", "citations"].map((tab) => (
-          <button
+          <Button
             key={tab}
             style={{
               flex: 1,
@@ -403,7 +399,7 @@ async function handleExtract() {
             onClick={() => handleTabClick(tab as ChatGptTabsType)}
           >
             {tab.charAt(0).toUpperCase() + tab.slice(1)}
-          </button>
+          </Button>
         ))}
       </div>
 
@@ -437,7 +433,7 @@ async function handleExtract() {
       </div>
 
       <div style={{ display: "flex", gap: "8px" }}>
-        <button
+        <Button
           onClick={handleSave}
           disabled={!data.html}
           style={{
@@ -451,9 +447,9 @@ async function handleExtract() {
           }}
         >
           Save
-        </button>
+        </Button>
 
-        <button
+        <Button
           onClick={handleExtract}
           style={{
             flex: 1,
@@ -466,7 +462,7 @@ async function handleExtract() {
           }}
         >
           Extract
-        </button>
+        </Button>
       </div>
     </div>
 
