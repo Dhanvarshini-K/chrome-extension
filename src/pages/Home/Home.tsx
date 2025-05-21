@@ -1,5 +1,6 @@
 import { useState } from "react";
 import Button from "../../components/button/Button";
+import "./Home.css";
 
 const Home = () => {
   const [file, setFile] = useState<any>(null);
@@ -38,7 +39,7 @@ const Home = () => {
         Upload Query Data Set
       </h2>
 
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit} className="form-container">
         <input
           type="file"
           id="csvFileInput"
@@ -46,18 +47,17 @@ const Home = () => {
           onChange={handleFileChange}
           style={{ display: "none" }}
         />
+        <div className="data-container">
+          <div className="upload-container">
+            <label htmlFor="csvFileInput" className="upload-button">
+              Upload CSV
+            </label>
+          </div>
 
-        <div className="upload-container">
-          <label htmlFor="csvFileInput" className="upload-button">
-            Upload CSV
-          </label>
-
-          {file && <span className="file-name">{file?.name}</span>}
+          <Button buttonText="Submit" />
         </div>
-
         {error && <div className="errorMessage">{error}</div>}
-
-        <Button buttonText="Submit" />
+        {file && <span className="file-name">{file?.name}</span>}
       </form>
     </div>
   );

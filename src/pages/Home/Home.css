@@ -12,13 +12,15 @@
 .errorMessage {
   color: red;
   margin-bottom: 3px;
-  font-size: 12px;
+  font-size: 14px;
 }
 
 .file-name {
   font-size: 14px;
   color: black;
   word-break: break-all;
+  background-color: beige;
+  padding: 3px 0 3px 10px;
 }
 
 .upload-button {
@@ -43,4 +45,15 @@
     padding: 1rem;
     width: 300px;
     font-family: "Arial, sans-serif" ;
+}
+
+.data-container {
+  display: flex;
+  gap:10px;
+}
+
+.form-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
