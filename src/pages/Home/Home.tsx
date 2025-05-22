@@ -85,7 +85,7 @@ const Home = ({goQueryList}: HomeProps) => {
 
           <Button buttonText="Submit" onClick={handleSubmit}/>
         </div>
-        {error && <div className="errorMessage">{error}</div>}
+        {error && <div className="error-message">{error}</div>}
         {file && <span className="file-name">{file?.name}</span>}
       </form>
     </div>
