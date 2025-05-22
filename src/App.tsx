@@ -11,12 +11,11 @@ const ai = import.meta.env.VITE_AI;
 
 function App() {
   const [page, setPage] = useState<"home" | "queryList" | "chat">("home");
-  const [selectedQuery, setSelectedQuery] = useState<{ OID: string; query: string } | null>(null);
-  console.log("page",page)
+  const [selectedQuery, setSelectedQuery] = useState<{ OID: string; Query: string } | null>(null);
 
   const goHome = () => setPage("home");
   const goQueryList = () => setPage("queryList");
-  const goChat = (item: { OID: string; query: string }) => {
+  const goChat = (item: { OID: string; Query: string }) => {
     setSelectedQuery(item);
     setPage("chat");
   };

@@ -3,12 +3,12 @@ import "./QueryList.css";
 import { FaArrowRight } from "react-icons/fa";
 import Breadcrumbs from "../../components/Breadcrumbs/Breadcrumbs";
 import Button from "../../components/Button/Button";
-import { getAllFromIndexedDB } from "../../helpers/indexedDB/indexedDB";
+import { getAllFromIndexedDB } from "../../utils/indexedDB";
 
 interface QueryListProps {
-  data: { OID: string; query: string }[];
+  data: { OID: string; Query: string }[];
   goHome: () => void;
-  goChat: (item: { OID: string; query: string }) => void;
+  goChat: (item: { OID: string; Query: string }) => void;
 }
 
 const QueryList: React.FC<QueryListProps> = ({ data, goHome, goChat }) => {
@@ -98,15 +98,16 @@ const QueryList: React.FC<QueryListProps> = ({ data, goHome, goChat }) => {
           {data.map((item, index) => (
             <tr key={item.OID}>
               <td>{item.OID}</td>
-              <td>{item.query}</td>
+              <td>{item.Query}</td>
               <td>
                 <FaArrowRight
                   onClick={() => goChat(data[index])}
                   className="arrow-icon"
-                  style={{ cursor: "pointer" }}
                 />
               </td>
-              <td></td>
+              <td>
+                {}
+              </td>
             </tr>
           ))}
         </tbody>

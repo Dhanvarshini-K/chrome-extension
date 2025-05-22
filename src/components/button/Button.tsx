@@ -10,7 +10,6 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement>{
 
 
 const Button = ({ buttonText, className, onClick, disabled,children }: ButtonProps) => {
-
   return (
     <button 
       type="button" 

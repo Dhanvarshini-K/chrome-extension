@@ -3,10 +3,10 @@ import TurnDown from "turndown";
 import "./ChatGpt.css";
 import { extractIdFromPath } from "./helpers/chatgpt/extractId";
 import { ChatGptTabs, type ChatGptTabsType } from "./types/chatgpt.type";
-import { saveOrUpdate } from "./helpers/indexedDB/indexedDB";
 import Button from "./components/Button/Button";
 import Breadcrumbs from "./components/Breadcrumbs/Breadcrumbs";
 import CopyButton from "./components/CopyButton/CopyButton";
+import { saveOrUpdate } from "./utils";
 
 type ExtractedData = {
   html: string;
@@ -15,7 +15,7 @@ type ExtractedData = {
 
 type QueryData = {
   OID: string;
-  query: string;
+  Query: string;
 };
 
 interface ChatGptProps {
@@ -30,12 +30,13 @@ const Chatgpt = ({ goHome, goQueryList, queryData }: ChatGptProps) => {
   const [citations, setCitations] = useState<string>("");
   const [activeTab, setActiveTab] = useState<ChatGptTabsType>("");
 
-  const [extractedTabs, setExtractedTabs] = useState<Record<ChatGptTabsType, boolean>>({
+  const [extractedTabs, setExtractedTabs] = useState<
+    Record<ChatGptTabsType, boolean>
+  >({
     html: false,
     markdown: false,
     citations: false,
   });
-
 
   const [id, setId] = useState<string>("");
 
@@ -168,7 +169,6 @@ const Chatgpt = ({ goHome, goQueryList, queryData }: ChatGptProps) => {
         const button = document.querySelector(
           '[data-testid="copy-turn-action-button"]'
         );
-        console.log("button", button);
         if (button) {
           button.parentElement?.parentElement?.parentElement?.remove();
         }
@@ -219,7 +219,7 @@ const Chatgpt = ({ goHome, goQueryList, queryData }: ChatGptProps) => {
     setActiveTab(tabName);
   };
 
-  const { OID="", query="" } = queryData || {};
+  const { OID = "", Query ="" } = queryData || {};
 
   const savePayload = async () => {
     const responseText = output?.markdownSingleLine || "";
@@ -230,15 +230,22 @@ const Chatgpt = ({ goHome, goQueryList, queryData }: ChatGptProps) => {
         : citations;
     const timestamp = formattedDate;
 
+    const isComplete =
+      id && OID && Query && responseText && responseHTML && timestamp;
+    const responseCode = isComplete ? "Success" : "";
+
     const payload = {
-      chatId: id,
-      queryId: OID,
-      query: query,
-      responseText,
-      responseHTML,
-      citations: sources,
-      timestamp,
+      ChatID: id,
+      OID,
+      Query,
+      ResponseHTML: responseText,
+      ResponseText: responseHTML,
+      Sources: sources,
+      TimeStamp: timestamp,
+      ResponseCode:responseCode,
     };
+
+    console.log("payload", payload);
 
     try {
       await saveOrUpdate(payload);
@@ -255,33 +262,25 @@ const Chatgpt = ({ goHome, goQueryList, queryData }: ChatGptProps) => {
       await triggerExtract();
       setTimeout(() => {
         savePayload();
+        goQueryList();
       }, 1000);
     } else {
       savePayload();
+      goQueryList();
     }
   };
 
-
-
   return (
-    <div
-      className="query-details-container"
-    >
+    <div className="query-details-container">
       <Breadcrumbs
         showHome
         showQueryList
         onHomeClick={goHome}
         onQueryListClick={goQueryList}
       />
-      <p
-        className="query-details-title"
-      >
-        Query Details
-      </p>
+      <p className="query-details-title">Query Details</p>
 
-      <div
-        className="field-value-container"
-      >
+      <div className="field-value-container">
         <div>
           <p className="field-text">Query ID:</p>
           <div className="value-container">
@@ -293,8 +292,8 @@ const Chatgpt = ({ goHome, goQueryList, queryData }: ChatGptProps) => {
         <div>
           <p className="field-text">Query:</p>
           <div className="value-container">
-            <span>{query}</span>
-            <CopyButton value={query} />
+            <span>{Query}</span>
+            <CopyButton value={Query} />
           </div>
         </div>
 
@@ -327,13 +326,8 @@ const Chatgpt = ({ goHome, goQueryList, queryData }: ChatGptProps) => {
       </div>
 
       <div style={{ marginBottom: "1rem" }}>
-        <Button
-          onClick={removeDiv}
-        >
-          Remove Related Divs
-        </Button>
+        <Button onClick={removeDiv}>Remove Related Divs</Button>
       </div>
-
 
       <div className="tab-buttons">
         {tabs.map((tab) => (
@@ -346,7 +340,6 @@ const Chatgpt = ({ goHome, goQueryList, queryData }: ChatGptProps) => {
           </Button>
         ))}
       </div>
-
 
       <div className="tab-content">
         {activeTab === ChatGptTabs.HTML && output && (
@@ -373,9 +366,11 @@ const Chatgpt = ({ goHome, goQueryList, queryData }: ChatGptProps) => {
       <div className="save-extract-buttons-container">
         <Button
           onClick={handleSave}
-          disabled={!extractedTabs.html ||
+          disabled={
+            !extractedTabs.html ||
             !extractedTabs.markdown ||
-            !extractedTabs.citations}
+            !extractedTabs.citations
+          }
         >
           Save
         </Button>

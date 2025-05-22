@@ -1,5 +1,5 @@
 // utils.ts
-type CSVRow = { OID: string; query: string };
+type CSVRow = { OID: string; Query: string };
 
 let csvData: CSVRow[] = [];
 

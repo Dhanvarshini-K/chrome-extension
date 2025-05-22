@@ -38,6 +38,7 @@
 .data-container {
   display: flex;
   gap:10px;
+  justify-content: space-between;
 }
 
 .form-container {
@@ -53,4 +54,20 @@
 
 .input-container {
   display: none;
+}
+
+.field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+
+.input-field {
+  padding: 7px;
+}
+
+.button-field {
+  width: 62%;
 }

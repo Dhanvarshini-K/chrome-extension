@@ -19,7 +19,7 @@
 .breadcrumb-container{
   display: flex;
   gap: 20px;
-  align-items: center;
+  align-items: flex-start;
 }
 
 .breadcrumb-item {
