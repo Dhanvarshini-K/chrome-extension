@@ -3,11 +3,7 @@ import TurnDown from "turndown";
 import "./App.css";
 import { extractIdFromPath } from "./helpers/chatgpt/extractId";
 import type { ChatGptTabsType } from "./types/chatgpt.type";
-import CopyButton from "./components/CopyButton/CopyButton";
-import {
-  getAllFromIndexedDB,
-  saveToIndexedDB,
-} from "./helpers/indexedDB/indexedDB";
+import { getAllFromIndexedDB, saveOrUpdate } from "./helpers/indexedDB/indexedDB";
 import Button from "./components/button/Button";
 import Breadcrumbs from "./components/Breadcrumbs/Breadcrumbs";
 
@@ -214,7 +210,6 @@ const Chatgpt = ({ goHome, goQueryList, queryData }: ChatGptProps) => {
   const { OID, query } = queryData || {};
 
   const savePayload = async () => {
-    console.log("data in savePayload", data);
     const responseText = output?.markdownSingleLine || "";
     const responseHTML = output?.htmlSingleLine || "";
     const sources =
@@ -234,8 +229,7 @@ const Chatgpt = ({ goHome, goQueryList, queryData }: ChatGptProps) => {
     };
 
     try {
-      await saveToIndexedDB(payload);
-      console.log("Saved to IndexedDB:", payload);
+      await saveOrUpdate(payload);
       alert("Saved successfully to IndexedDB!");
     } catch (error) {
       console.error("Error saving to IndexedDB:", error);
@@ -255,9 +249,18 @@ const Chatgpt = ({ goHome, goQueryList, queryData }: ChatGptProps) => {
     }
   };
 
+  function escapeTSVField(value: string) {
+    return `"${String(value)
+      .replace(/"/g, '""')       // Escape double quotes
+      .replace(/\t/g, ' ')       // Replace tab characters with space
+      .replace(/\r?\n/g, '\n')   // Normalize newlines
+      }"`;
+  }
+
+
   async function handleExtract() {
     try {
-      const allData = await getAllFromIndexedDB();
+      const allData = await getAllFromIndexedDB();   
 
       if (allData.length === 0) {
         console.error("No data found in IndexedDB.");
@@ -275,14 +278,6 @@ const Chatgpt = ({ goHome, goQueryList, queryData }: ChatGptProps) => {
         "timestamp",
       ];
 
-      function escapeTSVField(value: string) {
-        return `"${
-          String(value)
-            .replace(/"/g, '""') // Escape double quotes
-            .replace(/\t/g, " ") // Replace tab characters with space
-            .replace(/\r?\n/g, "\n") // Normalize newlines
-        }"`;
-      }
 
       const rows = allData.map((data: any) => {
         const { chatId, citations, responseText, responseHTML, timestamp } =
@@ -353,7 +348,6 @@ const Chatgpt = ({ goHome, goQueryList, queryData }: ChatGptProps) => {
           <strong>Query ID:</strong>
           <div style={{ display: "flex", justifyContent: "space-between" }}>
             <span>{OID ?? ""}</span>
-            <CopyButton value={""} />
           </div>
         </div>
 
@@ -361,7 +355,6 @@ const Chatgpt = ({ goHome, goQueryList, queryData }: ChatGptProps) => {
           <strong>Query:</strong>
           <div style={{ display: "flex", justifyContent: "space-between" }}>
             <span>{query}</span>
-            <CopyButton value={""} />
           </div>
         </div>
 
@@ -369,7 +362,6 @@ const Chatgpt = ({ goHome, goQueryList, queryData }: ChatGptProps) => {
           <strong>Chat ID:</strong>
           <div style={{ display: "flex", justifyContent: "space-between" }}>
             <span>{id}</span>
-            <CopyButton value={id} />
           </div>
         </div>
 
@@ -388,7 +380,6 @@ const Chatgpt = ({ goHome, goQueryList, queryData }: ChatGptProps) => {
                 })
                 .replace(",", "")}
             </span>
-            <CopyButton value={formattedDate} />
           </div>
         </div>
       </div>
@@ -439,7 +430,6 @@ const Chatgpt = ({ goHome, goQueryList, queryData }: ChatGptProps) => {
       <div style={{ marginBottom: "1rem" }}>
         {activeTab === "html" && output && (
           <div>
-            <CopyButton value={output.htmlSingleLine} />
             <pre
               style={{
                 whiteSpace: "pre-wrap",
@@ -454,7 +444,6 @@ const Chatgpt = ({ goHome, goQueryList, queryData }: ChatGptProps) => {
 
         {activeTab === "markdown" && output && (
           <div>
-            <CopyButton value={output.markdownSingleLine} />
             <pre
               style={{
                 whiteSpace: "pre-wrap",
@@ -469,7 +458,6 @@ const Chatgpt = ({ goHome, goQueryList, queryData }: ChatGptProps) => {
 
         {activeTab === "citations" && citations && (
           <div>
-            <CopyButton value={citations} />
             <pre
               style={{
                 whiteSpace: "pre-wrap",
