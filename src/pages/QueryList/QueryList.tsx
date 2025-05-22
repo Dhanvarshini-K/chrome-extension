@@ -2,7 +2,7 @@ import React from "react";
 import "./QueryList.css";
 import { FaArrowRight } from "react-icons/fa";
 import Breadcrumbs from "../../components/Breadcrumbs/Breadcrumbs";
-import Button from "../../components/button/Button";
+import Button from "../../components/Button/Button";
 import { getAllFromIndexedDB } from "../../helpers/indexedDB/indexedDB";
 
 interface QueryListProps {
