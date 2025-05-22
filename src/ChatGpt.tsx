@@ -4,8 +4,9 @@ import "./ChatGpt.css";
 import { extractIdFromPath } from "./helpers/chatgpt/extractId";
 import { ChatGptTabs, type ChatGptTabsType } from "./types/chatgpt.type";
 import { saveOrUpdate } from "./helpers/indexedDB/indexedDB";
-import Button from "./components/button/Button";
+import Button from "./components/Button/Button";
 import Breadcrumbs from "./components/Breadcrumbs/Breadcrumbs";
+import CopyButton from "./components/CopyButton/CopyButton";
 
 type ExtractedData = {
   html: string;
@@ -218,7 +219,7 @@ const Chatgpt = ({ goHome, goQueryList, queryData }: ChatGptProps) => {
     setActiveTab(tabName);
   };
 
-  const { OID, query } = queryData || {};
+  const { OID="", query="" } = queryData || {};
 
   const savePayload = async () => {
     const responseText = output?.markdownSingleLine || "";
@@ -284,14 +285,16 @@ const Chatgpt = ({ goHome, goQueryList, queryData }: ChatGptProps) => {
         <div>
           <p className="field-text">Query ID:</p>
           <div className="value-container">
-            <span>{OID ?? "43543"}</span>
+            <span>{OID}</span>
+            <CopyButton value={OID} />
           </div>
         </div>
 
         <div>
           <p className="field-text">Query:</p>
           <div className="value-container">
-            <span>{query ?? "Can a person on SCAN medical insurance get added supplemental medical insurance?"}</span>
+            <span>{query}</span>
+            <CopyButton value={query} />
           </div>
         </div>
 
@@ -299,6 +302,7 @@ const Chatgpt = ({ goHome, goQueryList, queryData }: ChatGptProps) => {
           <p className="field-text">Chat ID:</p>
           <div className="value-container">
             <span>{id}</span>
+            <CopyButton value={id} />
           </div>
         </div>
 
@@ -317,6 +321,7 @@ const Chatgpt = ({ goHome, goQueryList, queryData }: ChatGptProps) => {
                 })
                 .replace(",", "")}
             </span>
+            <CopyButton value={formattedDate} />
           </div>
         </div>
       </div>
@@ -345,13 +350,23 @@ const Chatgpt = ({ goHome, goQueryList, queryData }: ChatGptProps) => {
 
       <div className="tab-content">
         {activeTab === ChatGptTabs.HTML && output && (
-          <pre className="pre-block">{output.htmlSingleLine}</pre>
+          <div>
+            <CopyButton value={output.htmlSingleLine} />
+            <pre className="pre-block">{output.htmlSingleLine}</pre>
+          </div>
+
         )}
         {activeTab === ChatGptTabs.MARKDOWN && output && (
-          <pre className="pre-block">{output.markdownSingleLine}</pre>
+          <div>
+            <CopyButton value={output.markdownSingleLine} />
+            <pre className="pre-block">{output.markdownSingleLine}</pre>
+          </div>
         )}
         {activeTab === ChatGptTabs.CITATIONS && citations && (
-          <pre className="pre-block">{citations}</pre>
+          <div>
+            <CopyButton value={citations} />
+            <pre className="pre-block">{citations}</pre>
+          </div>
         )}
       </div>
 

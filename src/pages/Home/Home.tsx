@@ -1,5 +1,5 @@
 import { useState } from "react";
-import Button from "../../components/button/Button";
+import Button from "../../components/Button/Button";
 import "./Home.css";
 import { setCSVData } from "../../utils";
 
