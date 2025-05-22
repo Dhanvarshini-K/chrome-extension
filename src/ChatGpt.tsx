@@ -4,7 +4,10 @@ import "./App.css";
 import { extractIdFromPath } from "./helpers/chatgpt/extractId";
 import type { ChatGptTabsType } from "./types/chatgpt.type";
 import CopyButton from "./components/CopyButton/CopyButton";
-import { getAllFromIndexedDB, saveToIndexedDB } from "./helpers/indexedDB/indexedDB";
+import {
+  getAllFromIndexedDB,
+  saveToIndexedDB,
+} from "./helpers/indexedDB/indexedDB";
 import Button from "./components/button/Button";
 import Breadcrumbs from "./components/Breadcrumbs/Breadcrumbs";
 
@@ -13,14 +16,19 @@ type ExtractedData = {
   text: string;
 };
 
+type QueryData = {
+  OID: string;
+  query: string;
+};
+
 interface ChatGptProps {
   goBack?: () => void;
   goHome: () => void;
   goQueryList: () => void;
-  queryData: any
+  queryData: QueryData | null;
 }
 
-const Chatgpt = ({goHome, goQueryList, queryData}: ChatGptProps ) => {
+const Chatgpt = ({ goHome, goQueryList, queryData }: ChatGptProps) => {
   const [data, setData] = useState<ExtractedData>({ html: "", text: "" });
   const [citations, setCitations] = useState<string>("");
   const [activeTab, setActiveTab] = useState<ChatGptTabsType>("");
@@ -123,7 +131,6 @@ const Chatgpt = ({goHome, goQueryList, queryData}: ChatGptProps ) => {
     })
     .replace(",", "");
 
-
   const renderOutput = () => {
     if (!data.html) return null;
 
@@ -154,19 +161,20 @@ const Chatgpt = ({goHome, goQueryList, queryData}: ChatGptProps ) => {
     chrome.scripting.executeScript({
       target: { tabId: tab.id! },
       func: () => {
-
         // aria-label="Edit in canvas"
-        const button = document.querySelector('[data-testid="copy-turn-action-button"]');
-        console.log("button", button)
+        const button = document.querySelector(
+          '[data-testid="copy-turn-action-button"]'
+        );
+        console.log("button", button);
         if (button) {
-          button.parentElement?.parentElement?.parentElement?.remove()
+          button.parentElement?.parentElement?.parentElement?.remove();
         }
 
-        document.querySelector("#sidebar")?.parentElement?.parentElement?.parentElement?.parentElement?.parentElement?.remove()
+        document
+          .querySelector("#sidebar")
+          ?.parentElement?.parentElement?.parentElement?.parentElement?.parentElement?.remove();
 
-        const targetDivs = [
-          ".group-footnote",
-        ];
+        const targetDivs = [".group-footnote"];
 
         const targetDivs2 = [
           "#conversation-header-actions",
@@ -174,7 +182,7 @@ const Chatgpt = ({goHome, goQueryList, queryData}: ChatGptProps ) => {
           "#page-header",
           "#thread-bottom-container",
           "#sidebar-header",
-          "#sidebar"
+          "#sidebar",
         ];
         targetDivs2.forEach((selector) => {
           const divs = document.querySelectorAll(selector);
@@ -203,16 +211,22 @@ const Chatgpt = ({goHome, goQueryList, queryData}: ChatGptProps ) => {
     setActiveTab(tabName);
   };
 
-  const savePayload = async () => {
-    console.log('data in savePayload', data);
+  const { OID, query } = queryData || {};
 
+  const savePayload = async () => {
+    console.log("data in savePayload", data);
     const responseText = output?.markdownSingleLine || "";
     const responseHTML = output?.htmlSingleLine || "";
-    const sources = (citations.includes("No content found") && !citations.startsWith('[')) ? "" : citations;    
+    const sources =
+      citations.includes("No content found") && !citations.startsWith("[")
+        ? ""
+        : citations;
     const timestamp = formattedDate;
 
     const payload = {
       chatId: id,
+      queryId: OID,
+      query: query,
       responseText,
       responseHTML,
       citations: sources,
@@ -229,7 +243,6 @@ const Chatgpt = ({goHome, goQueryList, queryData}: ChatGptProps ) => {
     }
   };
 
-
   const handleSave = async () => {
     if (!data.html) {
       console.log("Triggering extract since data.html is empty...");
@@ -241,7 +254,6 @@ const Chatgpt = ({goHome, goQueryList, queryData}: ChatGptProps ) => {
       savePayload();
     }
   };
-
 
   async function handleExtract() {
     try {
@@ -263,16 +275,18 @@ const Chatgpt = ({goHome, goQueryList, queryData}: ChatGptProps ) => {
         "timestamp",
       ];
 
-     function escapeTSVField(value:string) {
-        return `"${String(value)
-            .replace(/"/g, '""')       // Escape double quotes
-            .replace(/\t/g, ' ')       // Replace tab characters with space
-            .replace(/\r?\n/g, '\n')   // Normalize newlines
+      function escapeTSVField(value: string) {
+        return `"${
+          String(value)
+            .replace(/"/g, '""') // Escape double quotes
+            .replace(/\t/g, " ") // Replace tab characters with space
+            .replace(/\r?\n/g, "\n") // Normalize newlines
         }"`;
-    }
+      }
 
       const rows = allData.map((data: any) => {
-        const { chatId, citations, responseText, responseHTML, timestamp } = data;
+        const { chatId, citations, responseText, responseHTML, timestamp } =
+          data;
         const sanitizedResponseText = escapeTSVField(responseText);
         const sanitizedResponseHTML = escapeTSVField(responseHTML);
         return [
@@ -284,17 +298,17 @@ const Chatgpt = ({goHome, goQueryList, queryData}: ChatGptProps ) => {
           escapeTSVField("{}"),
           escapeTSVField("v-bvenkatesa"),
           escapeTSVField(timestamp || ""),
-        ].join('\t');
+        ].join("\t");
       });
 
-      const tsvContent = [headers.join('\t'), ...rows].join('\n');
+      const tsvContent = [headers.join("\t"), ...rows].join("\n");
 
       const blob = new Blob([tsvContent], {
-        type: 'text/tab-separated-values;charset=utf-8;',
+        type: "text/tab-separated-values;charset=utf-8;",
       });
 
       const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
+      const a = document.createElement("a");
       a.href = url;
       a.download = "output.tsv";
       document.body.appendChild(a);
@@ -306,13 +320,23 @@ const Chatgpt = ({goHome, goQueryList, queryData}: ChatGptProps ) => {
     }
   }
 
-  const {OID, query} = queryData
-
   return (
-    <div style={{ padding: "1rem", width: 320, fontFamily: "Arial, sans-serif" }}>
-
-      <Breadcrumbs showHome showQueryList onHomeClick={goHome} onQueryListClick={goQueryList}/>
-      <h2 style={{ fontSize: "1.5rem", marginBottom: "1rem", textAlign: "center" }}>
+    <div
+      style={{ padding: "1rem", width: 320, fontFamily: "Arial, sans-serif" }}
+    >
+      <Breadcrumbs
+        showHome
+        showQueryList
+        onHomeClick={goHome}
+        onQueryListClick={goQueryList}
+      />
+      <h2
+        style={{
+          fontSize: "1.5rem",
+          marginBottom: "1rem",
+          textAlign: "center",
+        }}
+      >
         Query Details
       </h2>
 
@@ -328,7 +352,7 @@ const Chatgpt = ({goHome, goQueryList, queryData}: ChatGptProps ) => {
         <div style={{ marginBottom: "0.5rem" }}>
           <strong>Query ID:</strong>
           <div style={{ display: "flex", justifyContent: "space-between" }}>
-            <span>{OID}</span>
+            <span>{OID ?? ""}</span>
             <CopyButton value={""} />
           </div>
         </div>
@@ -338,7 +362,6 @@ const Chatgpt = ({goHome, goQueryList, queryData}: ChatGptProps ) => {
           <div style={{ display: "flex", justifyContent: "space-between" }}>
             <span>{query}</span>
             <CopyButton value={""} />
-
           </div>
         </div>
 
@@ -347,7 +370,6 @@ const Chatgpt = ({goHome, goQueryList, queryData}: ChatGptProps ) => {
           <div style={{ display: "flex", justifyContent: "space-between" }}>
             <span>{id}</span>
             <CopyButton value={id} />
-
           </div>
         </div>
 
@@ -367,7 +389,6 @@ const Chatgpt = ({goHome, goQueryList, queryData}: ChatGptProps ) => {
                 .replace(",", "")}
             </span>
             <CopyButton value={formattedDate} />
-
           </div>
         </div>
       </div>
@@ -419,7 +440,13 @@ const Chatgpt = ({goHome, goQueryList, queryData}: ChatGptProps ) => {
         {activeTab === "html" && output && (
           <div>
             <CopyButton value={output.htmlSingleLine} />
-            <pre style={{ whiteSpace: "pre-wrap", background: "#f0f0f0", padding: "0.5rem" }}>
+            <pre
+              style={{
+                whiteSpace: "pre-wrap",
+                background: "#f0f0f0",
+                padding: "0.5rem",
+              }}
+            >
               {output.htmlSingleLine}
             </pre>
           </div>
@@ -428,7 +455,13 @@ const Chatgpt = ({goHome, goQueryList, queryData}: ChatGptProps ) => {
         {activeTab === "markdown" && output && (
           <div>
             <CopyButton value={output.markdownSingleLine} />
-            <pre style={{ whiteSpace: "pre-wrap", background: "#f0f0f0", padding: "0.5rem" }}>
+            <pre
+              style={{
+                whiteSpace: "pre-wrap",
+                background: "#f0f0f0",
+                padding: "0.5rem",
+              }}
+            >
               {output.markdownSingleLine}
             </pre>
           </div>
@@ -437,7 +470,13 @@ const Chatgpt = ({goHome, goQueryList, queryData}: ChatGptProps ) => {
         {activeTab === "citations" && citations && (
           <div>
             <CopyButton value={citations} />
-            <pre style={{ whiteSpace: "pre-wrap", background: "#f0f0f0", padding: "0.5rem" }}>
+            <pre
+              style={{
+                whiteSpace: "pre-wrap",
+                background: "#f0f0f0",
+                padding: "0.5rem",
+              }}
+            >
               {citations}
             </pre>
           </div>
@@ -477,10 +516,7 @@ const Chatgpt = ({goHome, goQueryList, queryData}: ChatGptProps ) => {
         </Button>
       </div>
     </div>
-
   );
-}
+};
 
 export default Chatgpt;
-
-
