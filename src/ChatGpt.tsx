@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import TurnDown from "turndown";
-import "./App.css";
+import "./ChatGpt.css";
 import { extractIdFromPath } from "./helpers/chatgpt/extractId";
-import type { ChatGptTabsType } from "./types/chatgpt.type";
-import { getAllFromIndexedDB, saveOrUpdate } from "./helpers/indexedDB/indexedDB";
+import { ChatGptTabs, type ChatGptTabsType } from "./types/chatgpt.type";
+import { saveOrUpdate } from "./helpers/indexedDB/indexedDB";
 import Button from "./components/button/Button";
 import Breadcrumbs from "./components/Breadcrumbs/Breadcrumbs";
 
@@ -29,10 +29,16 @@ const Chatgpt = ({ goHome, goQueryList, queryData }: ChatGptProps) => {
   const [citations, setCitations] = useState<string>("");
   const [activeTab, setActiveTab] = useState<ChatGptTabsType>("");
 
-  const [isExtracted, setIsExtracted] = useState(false);
-  const [isCitations, setIsCitations] = useState(false);
+  const [extractedTabs, setExtractedTabs] = useState<Record<ChatGptTabsType, boolean>>({
+    html: false,
+    markdown: false,
+    citations: false,
+  });
+
 
   const [id, setId] = useState<string>("");
+
+  const tabs: ChatGptTabsType[] = Object.values(ChatGptTabs);
 
   useEffect(() => {
     const extractIdFromUrl = async () => {
@@ -197,12 +203,17 @@ const Chatgpt = ({ goHome, goQueryList, queryData }: ChatGptProps) => {
   };
 
   const handleTabClick = (tabName: ChatGptTabsType) => {
-    if (tabName === "citations" && !isCitations) {
-      triggerExtractCitations();
-      setIsCitations(true);
-    } else if (tabName !== "citations" && !isExtracted) {
-      triggerExtract();
-      setIsExtracted(true);
+    if (!extractedTabs[tabName]) {
+      if (tabName === ChatGptTabs.CITATIONS) {
+        triggerExtractCitations();
+      } else {
+        triggerExtract();
+      }
+
+      setExtractedTabs((prev) => ({
+        ...prev,
+        [tabName]: true,
+      }));
     }
     setActiveTab(tabName);
   };
@@ -249,75 +260,11 @@ const Chatgpt = ({ goHome, goQueryList, queryData }: ChatGptProps) => {
     }
   };
 
-  function escapeTSVField(value: string) {
-    return `"${String(value)
-      .replace(/"/g, '""')       // Escape double quotes
-      .replace(/\t/g, ' ')       // Replace tab characters with space
-      .replace(/\r?\n/g, '\n')   // Normalize newlines
-      }"`;
-  }
 
-
-  async function handleExtract() {
-    try {
-      const allData = await getAllFromIndexedDB();   
-
-      if (allData.length === 0) {
-        console.error("No data found in IndexedDB.");
-        return;
-      }
-
-      const headers = [
-        "chatid",
-        "responseText",
-        "responseHTML",
-        "sources",
-        "responseImage",
-        "perfdata",
-        "agent",
-        "timestamp",
-      ];
-
-
-      const rows = allData.map((data: any) => {
-        const { chatId, citations, responseText, responseHTML, timestamp } =
-          data;
-        const sanitizedResponseText = escapeTSVField(responseText);
-        const sanitizedResponseHTML = escapeTSVField(responseHTML);
-        return [
-          escapeTSVField(chatId || ""),
-          sanitizedResponseText,
-          sanitizedResponseHTML,
-          escapeTSVField(citations || ""),
-          escapeTSVField("6.png"),
-          escapeTSVField("{}"),
-          escapeTSVField("v-bvenkatesa"),
-          escapeTSVField(timestamp || ""),
-        ].join("\t");
-      });
-
-      const tsvContent = [headers.join("\t"), ...rows].join("\n");
-
-      const blob = new Blob([tsvContent], {
-        type: "text/tab-separated-values;charset=utf-8;",
-      });
-
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "output.tsv";
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error("Error in handleExtract:", error);
-    }
-  }
 
   return (
     <div
-      style={{ padding: "1rem", width: 320, fontFamily: "Arial, sans-serif" }}
+      className="query-details-container"
     >
       <Breadcrumbs
         showHome
@@ -325,49 +272,39 @@ const Chatgpt = ({ goHome, goQueryList, queryData }: ChatGptProps) => {
         onHomeClick={goHome}
         onQueryListClick={goQueryList}
       />
-      <h2
-        style={{
-          fontSize: "1.5rem",
-          marginBottom: "1rem",
-          textAlign: "center",
-        }}
+      <p
+        className="query-details-title"
       >
         Query Details
-      </h2>
+      </p>
 
       <div
-        style={{
-          border: "1px solid #ccc",
-          borderRadius: "8px",
-          padding: "1rem",
-          marginBottom: "1rem",
-          background: "#f9f9f9",
-        }}
+        className="field-value-container"
       >
-        <div style={{ marginBottom: "0.5rem" }}>
-          <strong>Query ID:</strong>
-          <div style={{ display: "flex", justifyContent: "space-between" }}>
-            <span>{OID ?? ""}</span>
+        <div>
+          <p className="field-text">Query ID:</p>
+          <div className="value-container">
+            <span>{OID ?? "43543"}</span>
           </div>
         </div>
 
-        <div style={{ marginBottom: "0.5rem" }}>
-          <strong>Query:</strong>
-          <div style={{ display: "flex", justifyContent: "space-between" }}>
-            <span>{query}</span>
+        <div>
+          <p className="field-text">Query:</p>
+          <div className="value-container">
+            <span>{query ?? "Can a person on SCAN medical insurance get added supplemental medical insurance?"}</span>
           </div>
         </div>
 
-        <div style={{ marginBottom: "0.5rem" }}>
-          <strong>Chat ID:</strong>
-          <div style={{ display: "flex", justifyContent: "space-between" }}>
+        <div>
+          <p className="field-text">Chat ID:</p>
+          <div className="value-container">
             <span>{id}</span>
           </div>
         </div>
 
         <div>
-          <strong>Date:</strong>
-          <div style={{ display: "flex", justifyContent: "space-between" }}>
+          <p className="field-text">Date:</p>
+          <div className="value-container">
             <span>
               {new Date()
                 .toLocaleString("en-US", {
@@ -384,123 +321,48 @@ const Chatgpt = ({ goHome, goQueryList, queryData }: ChatGptProps) => {
         </div>
       </div>
 
-      <div className="button-container" style={{ marginBottom: "1rem" }}>
+      <div style={{ marginBottom: "1rem" }}>
         <Button
           onClick={removeDiv}
-          style={{
-            backgroundColor: "#e74c3c",
-            color: "#fff",
-            border: "none",
-            padding: "0.5rem 1rem",
-            borderRadius: "4px",
-            cursor: "pointer",
-            width: "100%",
-          }}
         >
           Remove Related Divs
         </Button>
       </div>
 
-      <div
-        style={{
-          display: "flex",
-          gap: "8px",
-          marginBottom: "1rem",
-        }}
-      >
-        {["html", "markdown", "citations"].map((tab) => (
+
+      <div className="tab-buttons">
+        {tabs.map((tab) => (
           <Button
             key={tab}
-            style={{
-              flex: 1,
-              padding: "0.5rem",
-              backgroundColor: activeTab === tab ? "#3498db" : "#ecf0f1",
-              color: activeTab === tab ? "#fff" : "#333",
-              border: "none",
-              borderRadius: "4px",
-              cursor: "pointer",
-            }}
-            onClick={() => handleTabClick(tab as ChatGptTabsType)}
+            className={`tab-button ${extractedTabs[tab] ? "extracted" : ""}`}
+            onClick={() => handleTabClick(tab)}
           >
             {tab.charAt(0).toUpperCase() + tab.slice(1)}
           </Button>
         ))}
       </div>
 
-      <div style={{ marginBottom: "1rem" }}>
-        {activeTab === "html" && output && (
-          <div>
-            <pre
-              style={{
-                whiteSpace: "pre-wrap",
-                background: "#f0f0f0",
-                padding: "0.5rem",
-              }}
-            >
-              {output.htmlSingleLine}
-            </pre>
-          </div>
-        )}
 
-        {activeTab === "markdown" && output && (
-          <div>
-            <pre
-              style={{
-                whiteSpace: "pre-wrap",
-                background: "#f0f0f0",
-                padding: "0.5rem",
-              }}
-            >
-              {output.markdownSingleLine}
-            </pre>
-          </div>
+      <div className="tab-content">
+        {activeTab === ChatGptTabs.HTML && output && (
+          <pre className="pre-block">{output.htmlSingleLine}</pre>
         )}
-
-        {activeTab === "citations" && citations && (
-          <div>
-            <pre
-              style={{
-                whiteSpace: "pre-wrap",
-                background: "#f0f0f0",
-                padding: "0.5rem",
-              }}
-            >
-              {citations}
-            </pre>
-          </div>
+        {activeTab === ChatGptTabs.MARKDOWN && output && (
+          <pre className="pre-block">{output.markdownSingleLine}</pre>
+        )}
+        {activeTab === ChatGptTabs.CITATIONS && citations && (
+          <pre className="pre-block">{citations}</pre>
         )}
       </div>
 
-      <div style={{ display: "flex", gap: "8px" }}>
+      <div className="save-extract-buttons-container">
         <Button
           onClick={handleSave}
-          disabled={!data.html}
-          style={{
-            flex: 1,
-            backgroundColor: "#3498db",
-            color: "#fff",
-            padding: "0.5rem",
-            borderRadius: "4px",
-            border: "none",
-            cursor: data.html ? "pointer" : "not-allowed",
-          }}
+          disabled={!extractedTabs.html ||
+            !extractedTabs.markdown ||
+            !extractedTabs.citations}
         >
           Save
-        </Button>
-
-        <Button
-          onClick={handleExtract}
-          style={{
-            flex: 1,
-            backgroundColor: "#27ae60",
-            color: "#fff",
-            padding: "0.5rem",
-            borderRadius: "4px",
-            border: "none",
-            cursor: "pointer",
-          }}
-        >
-          Extract
         </Button>
       </div>
     </div>

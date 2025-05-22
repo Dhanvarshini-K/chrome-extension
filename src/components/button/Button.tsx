@@ -14,7 +14,7 @@ const Button = ({ buttonText, className, onClick, disabled,children }: ButtonPro
   return (
     <button 
       type="button" 
-      className={`button-container ${className ? className : ""}`} 
+      className={`button-container ${className ? className : ""} ${disabled ? "disabled-button" : ""}`} 
       onClick={onClick}
       disabled = {disabled}
     >
