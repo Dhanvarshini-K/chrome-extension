@@ -3,7 +3,6 @@ import TurnDown from "turndown";
 import "./App.css";
 import { extractIdFromPath } from "./helpers/chatgpt/extractId";
 import type { ChatGptTabsType } from "./types/chatgpt.type";
-import CopyButton from "./components/CopyButton/CopyButton";
 import { getAllFromIndexedDB, saveOrUpdate } from "./helpers/indexedDB/indexedDB";
 import Button from "./components/button/Button";
 import Breadcrumbs from "./components/Breadcrumbs/Breadcrumbs";
@@ -349,7 +348,6 @@ const Chatgpt = ({ goHome, goQueryList, queryData }: ChatGptProps) => {
           <strong>Query ID:</strong>
           <div style={{ display: "flex", justifyContent: "space-between" }}>
             <span>{OID ?? ""}</span>
-            <CopyButton value={""} />
           </div>
         </div>
 
@@ -357,7 +355,6 @@ const Chatgpt = ({ goHome, goQueryList, queryData }: ChatGptProps) => {
           <strong>Query:</strong>
           <div style={{ display: "flex", justifyContent: "space-between" }}>
             <span>{query}</span>
-            <CopyButton value={""} />
           </div>
         </div>
 
@@ -365,7 +362,6 @@ const Chatgpt = ({ goHome, goQueryList, queryData }: ChatGptProps) => {
           <strong>Chat ID:</strong>
           <div style={{ display: "flex", justifyContent: "space-between" }}>
             <span>{id}</span>
-            <CopyButton value={id} />
           </div>
         </div>
 
@@ -384,7 +380,6 @@ const Chatgpt = ({ goHome, goQueryList, queryData }: ChatGptProps) => {
                 })
                 .replace(",", "")}
             </span>
-            <CopyButton value={formattedDate} />
           </div>
         </div>
       </div>
@@ -435,7 +430,6 @@ const Chatgpt = ({ goHome, goQueryList, queryData }: ChatGptProps) => {
       <div style={{ marginBottom: "1rem" }}>
         {activeTab === "html" && output && (
           <div>
-            <CopyButton value={output.htmlSingleLine} />
             <pre
               style={{
                 whiteSpace: "pre-wrap",
@@ -450,7 +444,6 @@ const Chatgpt = ({ goHome, goQueryList, queryData }: ChatGptProps) => {
 
         {activeTab === "markdown" && output && (
           <div>
-            <CopyButton value={output.markdownSingleLine} />
             <pre
               style={{
                 whiteSpace: "pre-wrap",
@@ -465,7 +458,6 @@ const Chatgpt = ({ goHome, goQueryList, queryData }: ChatGptProps) => {
 
         {activeTab === "citations" && citations && (
           <div>
-            <CopyButton value={citations} />
             <pre
               style={{
                 whiteSpace: "pre-wrap",
