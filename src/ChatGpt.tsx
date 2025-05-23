@@ -2,11 +2,11 @@ import { useEffect, useState } from "react";
 import TurnDown from "turndown";
 import "./ChatGpt.css";
 import { extractIdFromPath } from "./helpers/chatgpt/extractId";
-import { ChatGptTabs, type ChatGptTabsType } from "./types/chatgpt.type";
 import Button from "./components/Button/Button";
 import Breadcrumbs from "./components/Breadcrumbs/Breadcrumbs";
 import CopyButton from "./components/CopyButton/CopyButton";
 import { saveOrUpdate } from "./utils";
+import { ChatGptTabs, type ChatGptTabsType } from "./types";
 
 type ExtractedData = {
   html: string;
@@ -23,9 +23,10 @@ interface ChatGptProps {
   goHome: () => void;
   goQueryList: () => void;
   queryData: QueryData | null;
+  refreshQueryData: () => Promise<void>;
 }
 
-const Chatgpt = ({ goHome, goQueryList, queryData }: ChatGptProps) => {
+const Chatgpt = ({ goHome, goQueryList, queryData, refreshQueryData }: ChatGptProps) => {
   const [data, setData] = useState<ExtractedData>({ html: "", text: "" });
   const [citations, setCitations] = useState<string>("");
   const [activeTab, setActiveTab] = useState<ChatGptTabsType>("");
@@ -247,6 +248,8 @@ const Chatgpt = ({ goHome, goQueryList, queryData }: ChatGptProps) => {
 
     try {
       await saveOrUpdate(payload);
+      await refreshQueryData();
+      goQueryList();
       alert("Saved successfully to IndexedDB!");
     } catch (error) {
       console.error("Error saving to IndexedDB:", error);
@@ -260,11 +263,9 @@ const Chatgpt = ({ goHome, goQueryList, queryData }: ChatGptProps) => {
       await triggerExtract();
       setTimeout(() => {
         savePayload();
-        goQueryList();
       }, 1000);
     } else {
       savePayload();
-      goQueryList();
     }
   };
 

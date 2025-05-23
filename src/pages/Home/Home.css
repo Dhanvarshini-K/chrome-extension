@@ -68,6 +68,21 @@
   padding: 7px;
 }
 
+.view-query-list-button {
+  margin-top: 1rem;
+}
+
 .button-field {
   width: 62%;
+}
+
+.label-value-container {
+  display: flex;
+  align-items: center;
+  gap:8px;
+}
+
+.label-value {
+  margin: 10px 0;
+  font-weight: 500;
 }

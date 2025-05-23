@@ -1,5 +1,5 @@
 import { openDB } from "idb";
-import { HEADERS } from "../types/ai.type";
+import { HEADERS } from "../types";
 
 export const DB_NAME = "ChatGPTStore";
 export const STORE_NAME = "SavedQueries";
@@ -87,7 +87,54 @@ export async function createTableAndSaveData(dataObjects: any[]) {
 }
 
 // Get all rows sorted by timestamp
+// export async function getAllFromIndexedDB(): Promise<any[]> {
+//   try {
+//     const db = await openDatabase();
+//     const tx = db.transaction(STORE_NAME, "readonly");
+//     const store = tx.objectStore(STORE_NAME);
+//     const allItems = await store.getAll();
+//     return allItems.sort((a, b) => a.timestamp - b.timestamp);
+//   } catch (error) {
+//     console.error("Error reading from IndexedDB:", error);
+//     throw error;
+//   }
+// }
+
+
+export async function doesIndexedDBExist(dbName: string): Promise<boolean> {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(dbName);
+
+    let existed = true;
+
+    request.onupgradeneeded = () => {
+      // This event only fires if DB didn't exist before
+      existed = false;
+    };
+
+    request.onsuccess = () => {
+      request.result.close();
+      if (!existed) {
+        // Delete it immediately because we don't want to create it just to check
+        indexedDB.deleteDatabase(dbName);
+      }
+      resolve(existed);
+    };
+
+    request.onerror = () => {
+      reject(request.error);
+    };
+  });
+}
+
+
 export async function getAllFromIndexedDB(): Promise<any[]> {
+  const dbExists = await doesIndexedDBExist(DB_NAME);
+  if (!dbExists) {
+    console.warn("IndexedDB not found. Returning empty data.");
+    return [];
+  }
+
   try {
     const db = await openDatabase();
     const tx = db.transaction(STORE_NAME, "readonly");

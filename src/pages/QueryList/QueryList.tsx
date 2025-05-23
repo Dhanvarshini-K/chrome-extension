@@ -1,39 +1,30 @@
-import React, { useEffect, useState } from "react";
 import "./QueryList.css";
 import { FaArrowRight, FaSpinner } from "react-icons/fa";
 import Breadcrumbs from "../../components/Breadcrumbs/Breadcrumbs";
 import Button from "../../components/Button/Button";
-import { DB_NAME, getAllFromIndexedDB } from "../../utils/indexedDB";
-import { HEADERS } from "../../types/ai.type";
+import { HEADERS, type QueryItem } from "../../types";
+import { useState } from "react";
+import { DB_NAME } from "../../utils";
 
 interface QueryListProps {
-  data: { OID: string; Query: string }[];
+  data: QueryItem[];
   goHome: () => void;
-  goChat: (item: { OID: string; Query: string }) => void;
+  goChat: (item: { OID: string; Query: string }) => void; 
+  setQueryData: React.Dispatch<React.SetStateAction<QueryItem[]>>; 
 }
 
-const QueryList: React.FC<QueryListProps> = ({ data, goHome, goChat }) => {
-  const [indexedDBData, setIndexedDBData] = useState<any[]>([]);
+const QueryList: React.FC<QueryListProps> = ({ data, goHome, goChat, setQueryData}) => {
   const [showModal, setShowModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-
-  useEffect(() => {
-    const fetchData = async () => {
-      const allData = await getAllFromIndexedDB();
-      setIndexedDBData(allData || []);
-    };
-
-    fetchData();
-  }, []);
-
   async function handleExtract() {
     try {
-      if (indexedDBData.length === 0) {
+
+      if (data?.length === 0) {
         console.error("No data found in IndexedDB.");
         return;
       }
 
-      const rows = indexedDBData.map((data: any) => {
+      const rows = data.map((item: any) => {
         const {
           OID,
           Agent,
@@ -46,7 +37,7 @@ const QueryList: React.FC<QueryListProps> = ({ data, goHome, goChat }) => {
           ResponseText,
           ResponseHTML,
           TimeStamp,
-        } = data;
+        } = item;
         return [
           OID,
           ChatID || "",
@@ -102,7 +93,7 @@ async function confirmClear() {
 
       deleteRequest.onsuccess = () => {
         console.log("DB deleted successfully");
-        setIndexedDBData([]);
+        setQueryData([]);
         setIsDeleting(false);
         setShowModal(false);
         goHome();
@@ -162,7 +153,7 @@ async function confirmClear() {
           </tr>
         </thead>
         <tbody>
-          {indexedDBData.map((item, index) => (
+          {data?.map((item, index) => (
             <tr key={item.OID}>
               <td>{item.OID}</td>
               <td>{item.Query}</td>

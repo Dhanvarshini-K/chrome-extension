@@ -1,17 +1,35 @@
- /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useState } from "react";
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { useEffect, useState } from "react";
 import "./App.css";
 import Home from "./pages/Home/Home";
 import QueryList from "./pages/QueryList/QueryList";
 import Perplexity from "./Perplexity";
-import { getCSVData } from "./utils";
+import { getAllFromIndexedDB } from "./utils";
 import Chatgpt from "./ChatGpt";
+import type { QueryItem } from "./types";
 
 const ai = import.meta.env.VITE_AI;
 
 function App() {
   const [page, setPage] = useState<"home" | "queryList" | "chat">("home");
   const [selectedQuery, setSelectedQuery] = useState<{ OID: string; Query: string } | null>(null);
+  const [queryData, setQueryData] = useState<QueryItem[]>([]);
+
+  useEffect(() => {
+    refreshQueryData();
+  }, []);
+
+  const refreshQueryData = async () => {
+    const allData = await getAllFromIndexedDB();
+    setQueryData(allData || []);
+  };
+
+
+  useEffect(() => {
+    if (queryData?.length) {
+      goQueryList();
+    }
+  }, [queryData])
 
   const goHome = () => setPage("home");
   const goQueryList = () => setPage("queryList");
@@ -20,21 +38,19 @@ function App() {
     setPage("chat");
   };
 
-  const data = getCSVData();
-
   const renderAppContent = () => {
 
     if (ai === "perplexity") return <Perplexity />;
 
     switch (page) {
       case "home":
-        return <Home goQueryList={goQueryList} />;
+        return <Home goQueryList={goQueryList} refreshQueryData={refreshQueryData} />;
       case "queryList":
-        return <QueryList data={data} goHome={goHome} goChat={goChat} />;
+        return <QueryList goHome={goHome} goChat={goChat} data={queryData} setQueryData={setQueryData} />;
       case "chat":
-        return <Chatgpt queryData={selectedQuery}  goHome={goHome} goQueryList={goQueryList} />;
+        return <Chatgpt queryData={selectedQuery} goHome={goHome} goQueryList={goQueryList} refreshQueryData={refreshQueryData} />;
       default:
-        return <Home goQueryList={goQueryList} />;
+        return <Home goQueryList={goQueryList} refreshQueryData={refreshQueryData} />;
     }
   };
 
