@@ -144,3 +144,35 @@ console.log("✅ Content script loaded!");
 //     dataUrl: finalImage,
 //   });
 // })();
+
+// Load html2canvas if needed
+
+(async () => {
+  const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
+  const viewportHeight = window.innerHeight;
+  const totalHeight = Math.max(
+    document.body.scrollHeight,
+    document.documentElement.scrollHeight
+  );
+  const screenshots: string[] = [];
+
+  let scrollY = 0;
+  while (scrollY < totalHeight) {
+    window.scrollTo(0, scrollY);
+    await delay(500); // Allow layout to settle
+
+    const { dataUrl }: { dataUrl: string } = await new Promise((resolve) => {
+      chrome.runtime.sendMessage({ action: "capture" }, resolve);
+    });
+
+    screenshots.push(dataUrl);
+    scrollY += viewportHeight;
+  }
+
+  window.scrollTo(0, 0); // Return to top
+
+  chrome.runtime.sendMessage({
+    action: "doneCapturing",
+    screenshots,
+  });
+})();

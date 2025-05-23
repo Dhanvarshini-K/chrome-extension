@@ -14,3 +14,17 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     return true; // Keep message channel open
   }
 });
+
+chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+  if (message.action === "capture") {
+    chrome.windows.getCurrent((window) => {
+      if (!window?.id) return;
+
+      chrome.tabs.captureVisibleTab(window.id, { format: "png" }, (dataUrl) => {
+        sendResponse({ dataUrl });
+      });
+    });
+
+    return true; // Keeps the message channel open for async response
+  }
+});
