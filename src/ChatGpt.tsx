@@ -219,7 +219,7 @@ const Chatgpt = ({ goHome, goQueryList, queryData }: ChatGptProps) => {
     setActiveTab(tabName);
   };
 
-  const { OID = "", Query ="" } = queryData || {};
+  const { OID = "", Query = "" } = queryData || {};
 
   const savePayload = async () => {
     const responseText = output?.markdownSingleLine || "";
@@ -238,14 +238,12 @@ const Chatgpt = ({ goHome, goQueryList, queryData }: ChatGptProps) => {
       ChatID: id,
       OID,
       Query,
-      ResponseHTML: responseText,
-      ResponseText: responseHTML,
+      ResponseText: responseText,
+      ResponseHTML: responseHTML,
       Sources: sources,
       TimeStamp: timestamp,
-      ResponseCode:responseCode,
+      ResponseCode: responseCode,
     };
-
-    console.log("payload", payload);
 
     try {
       await saveOrUpdate(payload);
@@ -347,7 +345,6 @@ const Chatgpt = ({ goHome, goQueryList, queryData }: ChatGptProps) => {
             <CopyButton value={output.htmlSingleLine} />
             <pre className="pre-block">{output.htmlSingleLine}</pre>
           </div>
-
         )}
         {activeTab === ChatGptTabs.MARKDOWN && output && (
           <div>
