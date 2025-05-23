@@ -1,9 +1,9 @@
 import { openDB } from "idb";
 import { HEADERS } from "../types/ai.type";
 
-const DB_NAME = "ChatGPTStore";
-const STORE_NAME = "SavedQueries";
-const DB_VERSION = 1;
+export const DB_NAME = "ChatGPTStore";
+export const STORE_NAME = "SavedQueries";
+export const DB_VERSION = 1;
 
 
 
