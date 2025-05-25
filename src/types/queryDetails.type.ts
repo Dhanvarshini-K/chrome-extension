@@ -11,8 +11,15 @@ export interface QueryItem {
   PerfData: string;
   Timestamp: string;
   ResponseCode: string;
+  Engine:string;
   [key: string]: any;
 }
+
+export type QueryFormData = {
+  OID: string;
+  Query: string;
+  Engine:string;
+};
 
 export const HEADERS = [
   "OID",

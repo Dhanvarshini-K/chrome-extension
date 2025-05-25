@@ -6,23 +6,19 @@ import Button from "./components/Button/Button";
 import Breadcrumbs from "./components/Breadcrumbs/Breadcrumbs";
 import CopyButton from "./components/CopyButton/CopyButton";
 import { saveOrUpdate } from "./utils";
-import { ChatGptTabs, type ChatGptTabsType } from "./types";
+import { type ChatGptTabsType, ChatGptTabs, type AiType, AgentToAiType, type AiAliasType, AiAlias, type QueryFormData } from "./types";
 
 type ExtractedData = {
   html: string;
   text: string;
 };
 
-type QueryData = {
-  OID: string;
-  Query: string;
-};
 
 interface ChatGptProps {
   goBack?: () => void;
   goHome: () => void;
   goQueryList: () => void;
-  queryData: QueryData | null;
+  queryData: QueryFormData | null;
   refreshQueryData: () => Promise<void>;
 }
 
@@ -63,6 +59,23 @@ const Chatgpt = ({
 
     extractIdFromUrl();
   }, []);
+
+
+  useEffect(() => {
+    const extractAllData = async () => {
+      await triggerExtract();
+      await triggerExtractCitations();
+
+      setExtractedTabs({
+        html: true,
+        markdown: true,
+        citations: true,
+      });
+    };
+
+    extractAllData();
+  }, []);
+
 
   useEffect(() => {
     const listener = (message: any) => {
@@ -210,22 +223,10 @@ const Chatgpt = ({
   };
 
   const handleTabClick = (tabName: ChatGptTabsType) => {
-    if (!extractedTabs[tabName]) {
-      if (tabName === ChatGptTabs.CITATIONS) {
-        triggerExtractCitations();
-      } else {
-        triggerExtract();
-      }
-
-      setExtractedTabs((prev) => ({
-        ...prev,
-        [tabName]: true,
-      }));
-    }
     setActiveTab(tabName);
   };
 
-  const { OID = "", Query = "" } = queryData || {};
+  const { OID = "", Query = "", Engine = ""} = queryData || {};
 
   const savePayload = async () => {
     const responseText = output?.markdownSingleLine || "";
@@ -240,6 +241,10 @@ const Chatgpt = ({
       id && OID && Query && responseText && responseHTML && timestamp;
     const responseCode = isComplete ? "Success" : "";
 
+    const aiType: AiType = AgentToAiType[Engine];  // "chatgpt"
+    const alias: AiAliasType = AiAlias[aiType];        // "cgp"
+    const ResponseImage = `${alias}${OID}.png`;       // "cgp123.png"
+
     const payload = {
       ChatID: id,
       OID,
@@ -248,7 +253,8 @@ const Chatgpt = ({
       ResponseHTML: responseHTML,
       Sources: sources,
       TimeStamp: timestamp,
-      ResponseCode: responseCode,
+      ResponseImage,
+      ResponseCode: responseCode     
     };
 
     try {
