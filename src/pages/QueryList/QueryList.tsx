@@ -2,24 +2,25 @@ import "./QueryList.css";
 import { FaArrowRight, FaSpinner } from "react-icons/fa";
 import Breadcrumbs from "../../components/Breadcrumbs/Breadcrumbs";
 import Button from "../../components/Button/Button";
-import { AgentToAiType, AiAlias, HEADERS, type AiAliasType, type AiType, type QueryItem } from "../../types";
+import { HEADERS, type QueryItem } from "../../types";
 import { useState } from "react";
 import { DB_NAME } from "../../utils";
 
 interface QueryListProps {
   data: QueryItem[];
   goHome: () => void;
-  goChat: (item: { OID: string; Query: string }) => void;
+  goChat: (item: { OID: string; Query: string; Engine: string }) => void;
   setQueryData: React.Dispatch<React.SetStateAction<QueryItem[]>>;
+  refreshQueryData: () => Promise<void>;
 }
 
-const QueryList: React.FC<QueryListProps> = ({ data, goHome, goChat, setQueryData }) => {
+const QueryList: React.FC<QueryListProps> = ({ data, goHome, goChat, setQueryData, refreshQueryData }) => {
   const [showModal, setShowModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
   const isComplete = data.every(
     (item) => item.ResponseText !== "" && item.ResponseHTML !== ""
-  );  
+  );
 
   async function handleExtract() {
     try {
@@ -41,13 +42,11 @@ const QueryList: React.FC<QueryListProps> = ({ data, goHome, goChat, setQueryDat
           Sources,
           ResponseText,
           ResponseHTML,
+          ResponseImage,
           TimeStamp,
           PerfData
         } = item;
 
-        const aiType: AiType = AgentToAiType[Engine];  // "chatgpt"
-        const alias: AiAliasType = AiAlias[aiType];        // "cgp"
-        const ResponseImage = `${alias}${item.OID}.png`;       // "cgp123.png"
 
         return [
           OID,
@@ -102,11 +101,18 @@ const QueryList: React.FC<QueryListProps> = ({ data, goHome, goChat, setQueryDat
 
         const deleteRequest = indexedDB.deleteDatabase(DB_NAME);
 
-        deleteRequest.onsuccess = () => {
+        deleteRequest.onsuccess = async () => {
           console.log("DB deleted successfully");
           setQueryData([]);
           setIsDeleting(false);
           setShowModal(false);
+          await refreshQueryData();
+          localStorage.setItem("agent", "");
+          localStorage.setItem("taskId", "");
+          localStorage.setItem("engine", "");
+          localStorage.setItem("submitted", "false");
+          localStorage.setItem("fileName", "");
+          localStorage.setItem("fileType", "");
           goHome();
         };
 
@@ -154,6 +160,7 @@ const QueryList: React.FC<QueryListProps> = ({ data, goHome, goChat, setQueryDat
           Clear Query List
         </Button>
       </div>
+
       <table className="query-table">
         <thead>
           <tr>

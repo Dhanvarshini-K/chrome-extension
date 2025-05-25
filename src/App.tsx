@@ -6,13 +6,13 @@ import QueryList from "./pages/QueryList/QueryList";
 import Perplexity from "./Perplexity";
 import { getAllFromIndexedDB } from "./utils";
 import Chatgpt from "./ChatGpt";
-import type { QueryItem } from "./types";
+import type { QueryFormData, QueryItem } from "./types";
 
 const ai = import.meta.env.VITE_AI;
 
 function App() {
   const [page, setPage] = useState<"home" | "queryList" | "chat">("home");
-  const [selectedQuery, setSelectedQuery] = useState<{ OID: string; Query: string } | null>(null);
+  const [selectedQuery, setSelectedQuery] = useState<QueryFormData | null>(null);
   const [queryData, setQueryData] = useState<QueryItem[]>([]);
 
   useEffect(() => {
@@ -33,7 +33,7 @@ function App() {
 
   const goHome = () => setPage("home");
   const goQueryList = () => setPage("queryList");
-  const goChat = (item: { OID: string; Query: string }) => {
+  const goChat = (item: QueryFormData) => {
     setSelectedQuery(item);
     setPage("chat");
   };
@@ -46,7 +46,7 @@ function App() {
       case "home":
         return <Home goQueryList={goQueryList} refreshQueryData={refreshQueryData} />;
       case "queryList":
-        return <QueryList goHome={goHome} goChat={goChat} data={queryData} setQueryData={setQueryData} />;
+        return <QueryList goHome={goHome} goChat={goChat} data={queryData} setQueryData={setQueryData} refreshQueryData={refreshQueryData}/>;
       case "chat":
         return <Chatgpt queryData={selectedQuery} goHome={goHome} goQueryList={goQueryList} refreshQueryData={refreshQueryData} />;
       default:
