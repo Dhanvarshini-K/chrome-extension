@@ -2,20 +2,25 @@ import "./QueryList.css";
 import { FaArrowRight, FaSpinner } from "react-icons/fa";
 import Breadcrumbs from "../../components/Breadcrumbs/Breadcrumbs";
 import Button from "../../components/Button/Button";
-import { HEADERS, type QueryItem } from "../../types";
+import { AgentToAiType, AiAlias, HEADERS, type AiAliasType, type AiType, type QueryItem } from "../../types";
 import { useState } from "react";
 import { DB_NAME } from "../../utils";
 
 interface QueryListProps {
   data: QueryItem[];
   goHome: () => void;
-  goChat: (item: { OID: string; Query: string }) => void; 
-  setQueryData: React.Dispatch<React.SetStateAction<QueryItem[]>>; 
+  goChat: (item: { OID: string; Query: string }) => void;
+  setQueryData: React.Dispatch<React.SetStateAction<QueryItem[]>>;
 }
 
-const QueryList: React.FC<QueryListProps> = ({ data, goHome, goChat, setQueryData}) => {
+const QueryList: React.FC<QueryListProps> = ({ data, goHome, goChat, setQueryData }) => {
   const [showModal, setShowModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  const isComplete = data.every(
+    (item) => item.ResponseText !== "" && item.ResponseHTML !== ""
+  );  
+
   async function handleExtract() {
     try {
 
@@ -37,7 +42,13 @@ const QueryList: React.FC<QueryListProps> = ({ data, goHome, goChat, setQueryDat
           ResponseText,
           ResponseHTML,
           TimeStamp,
+          PerfData
         } = item;
+
+        const aiType: AiType = AgentToAiType[Engine];  // "chatgpt"
+        const alias: AiAliasType = AiAlias[aiType];        // "cgp"
+        const ResponseImage = `${alias}${item.OID}.png`;       // "cgp123.png"
+
         return [
           OID,
           ChatID || "",
@@ -47,9 +58,9 @@ const QueryList: React.FC<QueryListProps> = ({ data, goHome, goChat, setQueryDat
           ResponseText,
           ResponseHTML,
           Sources || "",
-          "6.png",
+          ResponseImage,
           ResponseCode,
-          "{}",
+          PerfData,
           Agent,
           TimeStamp || "",
         ].join("\t");
@@ -78,47 +89,47 @@ const QueryList: React.FC<QueryListProps> = ({ data, goHome, goChat, setQueryDat
     setShowModal(true);
   }
 
-async function confirmClear() {
-  setIsDeleting(true);
+  async function confirmClear() {
+    setIsDeleting(true);
 
-  try {
-    // Close existing open connections before deleting
-    const openRequest = indexedDB.open(DB_NAME);
+    try {
+      // Close existing open connections before deleting
+      const openRequest = indexedDB.open(DB_NAME);
 
-    openRequest.onsuccess = () => {
-      const db = openRequest.result;
-      db.close(); // Close the DB connection immediately
+      openRequest.onsuccess = () => {
+        const db = openRequest.result;
+        db.close(); // Close the DB connection immediately
 
-      const deleteRequest = indexedDB.deleteDatabase(DB_NAME);
+        const deleteRequest = indexedDB.deleteDatabase(DB_NAME);
 
-      deleteRequest.onsuccess = () => {
-        console.log("DB deleted successfully");
-        setQueryData([]);
-        setIsDeleting(false);
-        setShowModal(false);
-        goHome();
+        deleteRequest.onsuccess = () => {
+          console.log("DB deleted successfully");
+          setQueryData([]);
+          setIsDeleting(false);
+          setShowModal(false);
+          goHome();
+        };
+
+        deleteRequest.onerror = () => {
+          console.error("Error deleting DB:", deleteRequest.error);
+          setIsDeleting(false);
+        };
+
+        deleteRequest.onblocked = () => {
+          console.warn("Delete blocked");
+          setIsDeleting(false);
+        };
       };
 
-      deleteRequest.onerror = () => {
-        console.error("Error deleting DB:", deleteRequest.error);
+      openRequest.onerror = () => {
+        console.error("Error opening DB:", openRequest.error);
         setIsDeleting(false);
       };
-
-      deleteRequest.onblocked = () => {
-        console.warn("Delete blocked");
-        setIsDeleting(false);
-      };
-    };
-
-    openRequest.onerror = () => {
-      console.error("Error opening DB:", openRequest.error);
+    } catch (err) {
+      console.error("Exception deleting DB:", err);
       setIsDeleting(false);
-    };
-  } catch (err) {
-    console.error("Exception deleting DB:", err);
-    setIsDeleting(false);
+    }
   }
-}
 
 
   function cancelClear() {
@@ -133,8 +144,8 @@ async function confirmClear() {
           Extract
         </Button>
 
-        <div className="status-summary">
-          Pending: {data.length} | Complete: 0
+        <div className={`status-summary ${isComplete ? "complete" : "pending"}`}>
+          {isComplete ? "✅ Complete" : "⌛ Pending"}
         </div>
       </div>
       <div className="query-container">

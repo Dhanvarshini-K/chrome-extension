@@ -2,15 +2,15 @@ export interface QueryItem {
   TaskID: string;
   OID: string;
   Query: string;
-  ChatId?: string;
-  Sources?: string;
-  ResponseText?: string;
-  ResponseHTML?: string;
-  ResponseImage?: string;
-  Agent?: string;
-  PerfData?: string;
-  Timestamp?: string;
-  ResponseCode?: string;
+  ChatId: string;
+  Sources:string;
+  ResponseText: string;
+  ResponseHTML: string;
+  ResponseImage: string;
+  Agent: string;
+  PerfData: string;
+  Timestamp: string;
+  ResponseCode: string;
   [key: string]: any;
 }
 
@@ -20,8 +20,8 @@ export const HEADERS = [
   "TurnID",
   "Engine",
   "Query",
-  "ResponseHTML",
   "ResponseText",
+  "ResponseHTML",
   "Sources",
   "ResponseImage",
   "ResponseCode",
