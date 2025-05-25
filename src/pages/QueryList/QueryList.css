@@ -22,7 +22,21 @@
 
 .status-summary {
   font-weight: bold;
+  padding: 6px 12px;
+  border-radius: 4px;
+  color: black;
 }
+
+.status-summary.pending {
+  background-color: #fff3cd;
+  border: 1px solid #ffeeba;
+}
+
+.status-summary.complete {
+  background-color: #d4edda;
+  border: 1px solid #c3e6cb;
+}
+
 
 .query-title {
   font-size: 1.4rem;

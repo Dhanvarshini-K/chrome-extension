@@ -12,25 +12,29 @@ interface HomeProps {
 
 const Home = ({ goQueryList, refreshQueryData }: HomeProps) => {
   const [agent, setAgent] = useState("");
-  const [turnId, setTurnId] = useState("");
   const [taskId, setTaskId] = useState("");
   const [engine, setEngine] = useState<AIEngine>(AIEngine.ChatGPT);
   const [file, setFile] = useState<File | null>(null);
   const [error, setError] = useState("");
   const [submitted, setSubmitted] = useState(false);
 
-  const isSubmitDisabled = !agent || !turnId || !engine || !file;
+  const isSubmitDisabled = !agent || !engine || !file;
 
   useEffect(() => {
     const savedAgent = localStorage.getItem("agent");
     const savedTaskId = localStorage.getItem("taskId");
-    const savedTurnId = localStorage.getItem("turnId");
     const savedEngine = localStorage.getItem("engine") as AIEngine;
     const wasSubmitted = localStorage.getItem("submitted") === "true";
 
+    const savedFileName = localStorage.getItem("fileName");
+    const savedFileType = localStorage.getItem("fileType");
+
+    if (savedFileName && savedFileType) {
+      setFile(new File([], savedFileName, { type: savedFileType }));
+    }
+
     if (savedAgent) setAgent(savedAgent);
     if (savedTaskId) setTaskId(savedTaskId);
-    if (savedTurnId) setTurnId(savedTurnId);
     if (savedEngine) setEngine(savedEngine);
     if (wasSubmitted) setSubmitted(true);
   }, []);
@@ -75,8 +79,8 @@ const Home = ({ goQueryList, refreshQueryData }: HomeProps) => {
             Query: query,
             Agent: agent,
             Engine: engine,
-            TurnID: turnId,
-            perfData: "{}",
+            TurnID: "1",
+            PerfData: "{}",
           };
         });
 
@@ -87,10 +91,11 @@ const Home = ({ goQueryList, refreshQueryData }: HomeProps) => {
       await refreshQueryData();
       localStorage.setItem("agent", agent);
       localStorage.setItem("taskId", taskId);
-      localStorage.setItem("turnId", turnId);
       localStorage.setItem("engine", engine);
       localStorage.setItem("submitted", "true");
 
+      localStorage.setItem("fileName", file.name);
+      localStorage.setItem("fileType", file.type);
 
       setSubmitted(true);
     };
@@ -100,15 +105,14 @@ const Home = ({ goQueryList, refreshQueryData }: HomeProps) => {
 
   return (
     <div className="home-container">
-      <h2 className="header">Upload Query Data Set</h2>
+      <h2 className="header">Query Data Set</h2>
 
       <form className="form-container">
         {submitted ? (
           <div className="field-group">
-            <div className="label-value-container"><p className="label-value">Agent:</p> {agent}</div>
-            <div className="label-value-container"><p className="label-value">Task ID: </p>{taskId}</div>
-            <div className="label-value-container"><p className="label-value">Turn ID:</p> {turnId}</div>
-            <div className="label-value-container"><p className="label-value">Engine: </p>{engine}</div>
+            <div className="label-value-container"><p className="label">Agent:</p> {agent}</div>
+            <div className="label-value-container"><p className="label">Task ID: </p>{taskId}</div>
+            <div className="label-value-container"><p className="label">Engine: </p>{engine}</div>
 
             <Button
               buttonText="View Query List"
@@ -132,14 +136,6 @@ const Home = ({ goQueryList, refreshQueryData }: HomeProps) => {
                 placeholder="Task ID"
                 value={taskId}
                 onChange={(e) => setTaskId(e.target.value)}
-                className="input-field"
-              />
-
-              <input
-                type="text"
-                placeholder="Turn ID"
-                value={turnId}
-                onChange={(e) => setTurnId(e.target.value)}
                 className="input-field"
               />
 
@@ -180,7 +176,7 @@ const Home = ({ goQueryList, refreshQueryData }: HomeProps) => {
         )}
 
         {error && <div className="error-message">{error}</div>}
-        {file && <div className="label-value"><p>Uploaded File: </p>{file.name}</div>}
+        {file && <div className="file-name"><p className="label">Uploaded File: </p>{`${file.name}`}</div>}
       </form>
     </div>
   );
