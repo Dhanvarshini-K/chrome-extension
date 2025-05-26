@@ -1,3 +1,4 @@
+import { useMemo, useEffect } from "react";
 import "./QueryList.css";
 import { FaArrowRight, FaSpinner } from "react-icons/fa";
 import Breadcrumbs from "../../components/Breadcrumbs/Breadcrumbs";
@@ -5,6 +6,7 @@ import Button from "../../components/Button/Button";
 import { HEADERS, type QueryItem } from "../../types";
 import { useState } from "react";
 import { DB_NAME } from "../../utils";
+import Fuse from "fuse.js";
 
 interface QueryListProps {
   data: QueryItem[];
@@ -17,6 +19,38 @@ interface QueryListProps {
 const QueryList: React.FC<QueryListProps> = ({ data, goHome, goChat, setQueryData, refreshQueryData }) => {
   const [showModal, setShowModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+
+
+  const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+
+
+  const fuse = useMemo(() => {
+    return new Fuse(data, {
+      keys: ["OID", "Query"],
+      threshold: 0.3,
+    });
+  }, [data]);
+
+  const filteredData = searchTerm.trim()
+    ? fuse.search(searchTerm).map(result => result.item)
+    : data;
+
+
+  const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+
+  const paginatedData = filteredData.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+
+  useEffect(() => {
+    setCurrentPage(1); // Reset to first page when search changes
+  }, [searchTerm]);
+
+
 
   const isComplete = data.every(
     (item) => item.ResponseText !== "" && item.ResponseHTML !== ""
@@ -160,34 +194,101 @@ const QueryList: React.FC<QueryListProps> = ({ data, goHome, goChat, setQueryDat
           Clear Query List
         </Button>
       </div>
+      <div className="search-bar">
+        <input
+          type="text"
+          placeholder="Search by OID or Query..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
+      </div>
+
       <div className="table-wrapper">
 
-      <table className="query-table">
-        <thead>
-          <tr>
-            <th>OID</th>
-            <th>QUERY</th>
-            <th>VIEW</th>
-            <th>STATUS</th>
-          </tr>
-        </thead>
-        <tbody>
-          {data?.map((item, index) => (
-            <tr key={item.OID}>
-              <td>{item.OID}</td>
-              <td>{item.Query}</td>
-              <td>
-                <FaArrowRight
-                  onClick={() => goChat(data[index])}
-                  className="arrow-icon"
-                />
-              </td>
-              <td>{item.ResponseCode === "Success" ? "✅" : ""}</td>
+        <table className="query-table">
+          <thead>
+            <tr>
+              <th>OID</th>
+              <th>QUERY</th>
+              <th>VIEW</th>
+              <th>STATUS</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {paginatedData?.map((item, index) => (
+              <tr key={item.OID}>
+                <td>{item.OID}</td>
+                <td>{item.Query}</td>
+                <td>
+                  <FaArrowRight
+                    onClick={() => goChat(data[index])}
+                    className="arrow-icon"
+                  />
+                </td>
+                <td>{item.ResponseCode === "Success" ? "✅" : ""}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
+
+      <div className="pagination-controls">
+        <div className="items-per-page">
+          Show{" "}
+          <select
+            value={itemsPerPage}
+            onChange={(e) => setItemsPerPage(parseInt(e.target.value))}
+          >
+            {[5, 10, 20].map((count) => (
+              <option key={count} value={count}>
+                {count}
+              </option>
+            ))}
+          </select>{" "}
+          entries
+        </div>
+
+        <div className="pagination-buttons">
+          <button
+            onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+            disabled={currentPage === 1}
+          >
+            Prev
+          </button>
+
+          {(() => {
+            const maxButtons = 5;
+            let startPage = Math.max(currentPage - Math.floor(maxButtons / 2), 1);
+            let endPage = startPage + maxButtons - 1;
+
+            if (endPage > totalPages) {
+              endPage = totalPages;
+              startPage = Math.max(endPage - maxButtons + 1, 1);
+            }
+
+            return Array.from({ length: endPage - startPage + 1 }, (_, i) => startPage + i).map(
+              (page) => (
+                <button
+                  key={page}
+                  className={page === currentPage ? "active" : ""}
+                  onClick={() => setCurrentPage(page)}
+                >
+                  {page}
+                </button>
+              )
+            );
+          })()}
+
+
+          <button
+            onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
+            disabled={currentPage === totalPages}
+          >
+            Next
+          </button>
+        </div>
+      </div>
+
       {showModal && (
         <div className="modal-overlay">
           <div className="modal-content">
