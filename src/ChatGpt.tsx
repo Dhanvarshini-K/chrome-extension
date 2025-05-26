@@ -226,7 +226,11 @@ const Chatgpt = ({
     setActiveTab(tabName);
   };
 
-  const { OID = "", Query = "", Engine = ""} = queryData || {};
+  const { OID = "", Query = "", Engine = "" } = queryData || {};
+
+  const aiType: AiType = AgentToAiType[Engine];  // "chatgpt"
+  const alias: AiAliasType = AiAlias[aiType];        // "cgp"
+  const ResponseImage = `${alias}${OID}.png`;       // "cgp123.png"
 
   const savePayload = async () => {
     const responseText = output?.markdownSingleLine || "";
@@ -241,9 +245,7 @@ const Chatgpt = ({
       id && OID && Query && responseText && responseHTML && timestamp;
     const responseCode = isComplete ? "Success" : "";
 
-    const aiType: AiType = AgentToAiType[Engine];  // "chatgpt"
-    const alias: AiAliasType = AiAlias[aiType];        // "cgp"
-    const ResponseImage = `${alias}${OID}.png`;       // "cgp123.png"
+
 
     const payload = {
       ChatID: id,
@@ -254,7 +256,7 @@ const Chatgpt = ({
       Sources: sources,
       TimeStamp: timestamp,
       ResponseImage,
-      ResponseCode: responseCode     
+      ResponseCode: responseCode
     };
 
     try {
@@ -329,7 +331,7 @@ const Chatgpt = ({
     const finalImage = canvas.toDataURL("image/png");
     const link = document.createElement("a");
     link.href = finalImage;
-    link.download = "full-page-screenshot.png";
+    link.download = ResponseImage;
     link.click();
   };
 
