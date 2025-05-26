@@ -160,6 +160,7 @@ const QueryList: React.FC<QueryListProps> = ({ data, goHome, goChat, setQueryDat
           Clear Query List
         </Button>
       </div>
+      <div className="table-wrapper">
 
       <table className="query-table">
         <thead>
@@ -186,6 +187,7 @@ const QueryList: React.FC<QueryListProps> = ({ data, goHome, goChat, setQueryDat
           ))}
         </tbody>
       </table>
+      </div>
       {showModal && (
         <div className="modal-overlay">
           <div className="modal-content">

@@ -42,66 +42,70 @@ const Home = ({ goQueryList, refreshQueryData }: HomeProps) => {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     if (selectedFile) {
-      const isCSV = selectedFile.name.toLowerCase().endsWith(".csv");
-      if (isCSV) {
+      const isTSV = selectedFile.name.toLowerCase().endsWith(".tsv");
+      if (isTSV) {
         setFile(selectedFile);
         setError("");
       } else {
         setFile(null);
-        setError("Only CSV files are allowed.");
+        setError("Only TSV files are allowed.");
       }
     }
   };
 
-  const handleSubmit = () => {
-    if (!file) {
-      setError("Please select a CSV file before submitting.");
+const handleSubmit = () => {
+  if (!file) {
+    setError("Please select a TSV file before submitting.");
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = async () => {
+    const text = reader.result as string;
+    const lines = text
+      .trim()
+      .split("\n")
+      .filter((line) => line.trim() !== "");
+
+    const headers = lines[0].split("\t").map(h => h.trim().toLowerCase());
+    const oidIndex = headers.findIndex(h => h === "oid");
+    const queryIndex = headers.findIndex(h => h.includes("query"));
+
+    if (oidIndex === -1 || queryIndex === -1) {
+      setError("Required columns 'OID' and 'Query' not found in the file.");
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = async () => {
-      const text = reader.result as string;
-      const lines = text
-        .trim()
-        .split("\n")
-        .map((line) => line.replace(/^"|"$/g, ""));
+    const dataObjects = lines.slice(1).map((line) => {
+      const columns = line.split("\t").map(col => col.trim());
+      return {
+        TaskID: taskId,
+        OID: columns[oidIndex],
+        Query: columns[queryIndex],
+        Agent: agent,
+        Engine: engine,
+        TurnID: "1",
+        PerfData: "{}",
+      };
+    });
 
-      const dataObjects = lines
-        .slice(1)
-        .filter((line) => line.trim() !== "")
-        .map((line) => {
-          const [OID, ...queryParts] = line.split(",");
-          const query = queryParts.join(",").trim();
-          return {
-            TaskID: taskId,
-            OID: OID.trim(),
-            Query: query,
-            Agent: agent,
-            Engine: engine,
-            TurnID: "1",
-            PerfData: "{}",
-          };
-        });
+    setCSVData(dataObjects);
+    await createTableAndSaveData(dataObjects);
 
+    await refreshQueryData();
+    localStorage.setItem("agent", agent);
+    localStorage.setItem("taskId", taskId);
+    localStorage.setItem("engine", engine);
+    localStorage.setItem("submitted", "true");
 
-      setCSVData(dataObjects);
-      await createTableAndSaveData(dataObjects);
+    localStorage.setItem("fileName", file.name);
+    localStorage.setItem("fileType", file.type);
 
-      await refreshQueryData();
-      localStorage.setItem("agent", agent);
-      localStorage.setItem("taskId", taskId);
-      localStorage.setItem("engine", engine);
-      localStorage.setItem("submitted", "true");
-
-      localStorage.setItem("fileName", file.name);
-      localStorage.setItem("fileType", file.type);
-
-      setSubmitted(true);
-    };
-
-    reader.readAsText(file);
+    setSubmitted(true);
   };
+
+  reader.readAsText(file);
+};
 
   return (
     <div className="home-container">
@@ -152,7 +156,7 @@ const Home = ({ goQueryList, refreshQueryData }: HomeProps) => {
             <input
               type="file"
               id="csvFileInput"
-              accept=".csv"
+              accept=".tsv"
               onChange={handleFileChange}
               className="input-container"
             />
@@ -160,7 +164,7 @@ const Home = ({ goQueryList, refreshQueryData }: HomeProps) => {
             <div className="data-container">
               <div className="upload-container">
                 <label htmlFor="csvFileInput" className="upload-button">
-                  Upload CSV
+                  Upload TSV
                 </label>
               </div>
 

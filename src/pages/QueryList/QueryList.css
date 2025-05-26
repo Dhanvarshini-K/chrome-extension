@@ -43,8 +43,14 @@
   margin-bottom: 1rem;
 }
 
+.table-wrapper {
+  overflow-x: auto;
+  width: 100%;
+}
+
 .query-table {
   width: 100%;
+  min-width: 600px;
   border-collapse: collapse;
 }
 
