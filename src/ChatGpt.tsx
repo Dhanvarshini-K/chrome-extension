@@ -189,7 +189,7 @@ const Chatgpt = ({
           '[data-testid="copy-turn-action-button"]'
         );
         if (button) {
-          button.parentElement?.parentElement?.parentElement?.remove();
+          button.parentElement?.parentElement?.remove();
         }
 
         document
