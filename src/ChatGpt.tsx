@@ -193,8 +193,8 @@ const Chatgpt = ({
         }
 
         document
-          .querySelector("#sidebar")
-          ?.parentElement?.parentElement?.parentElement?.parentElement?.parentElement?.remove();
+          .querySelector("#sidebar-header")
+          ?.parentElement?.parentElement?.remove();
 
         const targetDivs = [".group-footnote"];
 
