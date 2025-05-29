@@ -16,10 +16,6 @@
   cursor: pointer;
 }
 
-.extract-button {
-  width: 26%;
-}
-
 .status-summary {
   font-weight: bold;
   padding: 6px 12px;
@@ -36,6 +32,12 @@
   background-color: #d4edda;
   border: 1px solid #c3e6cb;
 }
+
+.status-summary.notYetStarted {
+  background-color: #bbbdbc;
+  border: 1px solid #404140;
+}
+
 
 .query-title {
   font-size: 1.4rem;
@@ -142,7 +144,6 @@
   border-radius: 4px;
   cursor: pointer;
   transition: background-color 0.3s ease;
-  width: 43%;
 }
 
 .clear-button.danger {
@@ -234,4 +235,33 @@
 }
 .clickable-cell:hover {
   color: blue;
+}
+
+.agent-dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.agent-label {
+  background-color: #f0f0f0;
+  border: 1px solid #ccc;
+  padding: 8px 12px;
+  cursor: pointer;
+  font-weight: bold;
+  width: 200px;
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background: white;
+  border: 1px solid #ccc;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  padding: 10px;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 200px;
 }
