@@ -18,13 +18,13 @@
 
 .breadcrumb-container{
   display: flex;
-  gap: 20px;
   align-items: flex-start;
 }
 
 .breadcrumb-item {
   font-size: 16px;
   cursor: pointer;
+  margin-right: 10px;
 }
 
 .breadcrumb-separator {

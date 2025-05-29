@@ -28,3 +28,17 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     return true; // Keeps the message channel open for async response
   }
 });
+
+chrome.sidePanel
+  .setPanelBehavior({ openPanelOnActionClick: true })
+  .catch((error) => console.error(error));
+
+chrome.tabs.onUpdated.addListener(async (tabId, _info, tab) => {
+  if (!tab.url) return;
+
+  await chrome.sidePanel.setOptions({
+    tabId,
+    path: "sidepanel.html",
+    enabled: true,
+  });
+});
