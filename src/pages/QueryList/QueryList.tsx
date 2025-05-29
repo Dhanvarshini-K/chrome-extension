@@ -19,6 +19,8 @@ interface QueryListProps {
 const QueryList: React.FC<QueryListProps> = ({ data, goHome, goChat,setQueryData, refreshQueryData }) => {
   const [showModal, setShowModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
 
 
   const [searchTerm, setSearchTerm] = useState("");
@@ -51,10 +53,25 @@ const QueryList: React.FC<QueryListProps> = ({ data, goHome, goChat,setQueryData
   }, [searchTerm]);
 
 
+  const status = useMemo(() => {
+    const allEmpty = data.every(
+      (item) => item.ResponseText.trim() === "" && item.ResponseHTML.trim() === ""
+    );
 
-  const isComplete = data.every(
-    (item) => item.ResponseText !== "" && item.ResponseHTML !== ""
-  );
+    if (allEmpty) return "Not Yet Started";
+
+    const anyEmpty = data.some(
+      (item) => item.ResponseText.trim() === "" || item.ResponseHTML.trim() === ""
+    );
+
+    if (anyEmpty) return "Pending";
+
+    return "Completed";
+  }, [data]);
+
+
+  const agent = localStorage.getItem("agent");
+
 
   async function handleExtract() {
     try {
@@ -184,19 +201,33 @@ const QueryList: React.FC<QueryListProps> = ({ data, goHome, goChat,setQueryData
     <div className="query-list-container">
       <div className="top-bar">
         <Breadcrumbs showHome showQueryList={false} onHomeClick={goHome} />
-        <Button className="extract-button" onClick={handleExtract}>
-          Extract
-        </Button>
 
-        <div className={`status-summary ${isComplete ? "complete" : "pending"}`}>
-          {isComplete ? "✅ Complete" : "⌛ Pending"}
+        <div className="agent-dropdown">
+          <button
+            className="agent-label"
+            onClick={() => setIsDropdownOpen((prev) => !prev)}
+          >
+            {agent} ▾
+          </button>
+
+          {isDropdownOpen && (
+            <div className="dropdown-menu">
+              <Button onClick={handleExtract}>
+                Extract
+              </Button>
+              <Button className="clear-button danger" onClick={handleClearQueryList}>
+                Clear Query List
+              </Button>
+            </div>
+          )}
         </div>
       </div>
+
       <div className="query-container">
-        <h2 className="query-title">Query Data List</h2>
-        <Button className="clear-button danger" onClick={handleClearQueryList}>
-          Clear Query List
-        </Button>
+
+        <div className={`status-summary ${status == "Completed" ? "completed" : status === "Pending" ? "pending": "notYetStarted" }`}>
+          {`Status : ${status}`}
+        </div>
       </div>
       <div className="search-bar">
         <input
