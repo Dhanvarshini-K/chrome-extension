@@ -16,17 +16,20 @@ interface QueryListProps {
   refreshQueryData: () => Promise<void>;
 }
 
-const QueryList: React.FC<QueryListProps> = ({ data, goHome, goChat,setQueryData, refreshQueryData }) => {
+const QueryList: React.FC<QueryListProps> = ({
+  data,
+  goHome,
+  goChat,
+  setQueryData,
+  refreshQueryData,
+}) => {
   const [showModal, setShowModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
-
-
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
-
 
   const fuse = useMemo(() => {
     return new Fuse(data, {
@@ -36,9 +39,8 @@ const QueryList: React.FC<QueryListProps> = ({ data, goHome, goChat,setQueryData
   }, [data]);
 
   const filteredData = searchTerm.trim()
-    ? fuse.search(searchTerm).map(result => result.item)
+    ? fuse.search(searchTerm).map((result) => result.item)
     : data;
-
 
   const totalPages = Math.ceil(filteredData.length / itemsPerPage);
 
@@ -47,21 +49,21 @@ const QueryList: React.FC<QueryListProps> = ({ data, goHome, goChat,setQueryData
     currentPage * itemsPerPage
   );
 
-
   useEffect(() => {
     setCurrentPage(1); // Reset to first page when search changes
   }, [searchTerm]);
 
-
   const status = useMemo(() => {
     const allEmpty = data.every(
-      (item) => item.ResponseText.trim() === "" && item.ResponseHTML.trim() === ""
+      (item) =>
+        item.ResponseText.trim() === "" && item.ResponseHTML.trim() === ""
     );
 
     if (allEmpty) return "Not Yet Started";
 
     const anyEmpty = data.some(
-      (item) => item.ResponseText.trim() === "" || item.ResponseHTML.trim() === ""
+      (item) =>
+        item.ResponseText.trim() === "" || item.ResponseHTML.trim() === ""
     );
 
     if (anyEmpty) return "Pending";
@@ -69,13 +71,10 @@ const QueryList: React.FC<QueryListProps> = ({ data, goHome, goChat,setQueryData
     return "Completed";
   }, [data]);
 
-
   const agent = localStorage.getItem("agent");
-
 
   async function handleExtract() {
     try {
-
       if (data?.length === 0) {
         console.error("No data found in IndexedDB.");
         return;
@@ -95,9 +94,8 @@ const QueryList: React.FC<QueryListProps> = ({ data, goHome, goChat,setQueryData
           ResponseHTML,
           ResponseImage,
           TimeStamp,
-          PerfData
+          PerfData,
         } = item;
-
 
         return [
           OID,
@@ -188,19 +186,18 @@ const QueryList: React.FC<QueryListProps> = ({ data, goHome, goChat,setQueryData
     }
   }
 
-
   function cancelClear() {
     setShowModal(false);
   }
 
   function goQueryDetails(index: number) {
-    return goChat(data[index])
+    return goChat(data[index]);
   }
 
   return (
     <div className="query-list-container">
       <div className="top-bar">
-        <Breadcrumbs showHome showQueryList={false} onHomeClick={goHome} />
+        <Breadcrumbs showHome showQueryList={false} onHomeClick={goHome} currentPageLabel="QueryList"/>
 
         <div className="agent-dropdown">
           <button
@@ -212,92 +209,114 @@ const QueryList: React.FC<QueryListProps> = ({ data, goHome, goChat,setQueryData
 
           {isDropdownOpen && (
             <div className="dropdown-menu">
-              <Button onClick={handleExtract}>
-                Extract
-              </Button>
-              <Button className="clear-button danger" onClick={handleClearQueryList}>
+              <Button onClick={handleExtract}>Extract</Button>
+              <Button
+                className="clear-button danger"
+                onClick={handleClearQueryList}
+              >
                 Clear Query List
               </Button>
             </div>
           )}
         </div>
       </div>
-
-      <div className="query-container">
-
-        <div className={`status-summary ${status == "Completed" ? "completed" : status === "Pending" ? "pending": "notYetStarted" }`}>
-          {`Status : ${status}`}
+      <div className={`${isDropdownOpen ? "blurred" : ""}`}>
+        <div className="query-container">
+          <div
+            className={`status-summary ${
+              status == "Completed"
+                ? "completed"
+                : status === "Pending"
+                ? "pending"
+                : "notYetStarted"
+            }`}
+          >
+            {`Status : ${status}`}
+          </div>
         </div>
-      </div>
-      <div className="search-bar">
-        <input
-          type="text"
-          placeholder="Search by OID or Query..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
-      </div>
+        <div className="search-bar">
+          <input
+            type="text"
+            placeholder="Search by OID or Query..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
 
-      <div className="table-wrapper">
-
-        <table className="query-table">
-          <thead>
-            <tr>
-              <th>S.NO</th>
-              <th>OID</th>
-              <th>QUERY</th>
-              <th>STATUS</th>
-            </tr>
-          </thead>
-          <tbody>
-            {paginatedData?.map((item, index) => (
-              <tr key={item.OID}>
-                <td>{(currentPage - 1) * itemsPerPage + index + 1}</td>
-                <td className="clickable-cell" onClick={() => goQueryDetails(index)}>{item.OID}</td>
-                <td  className="query-cell clickable-cell" onClick={() =>goQueryDetails(index)}>{item.Query}</td>
-                <td>{item.ResponseCode === "Success" ? "✅" : ""}</td>
+        <div className="table-wrapper">
+          <table className="query-table">
+            <thead>
+              <tr>
+                <th>S.NO</th>
+                <th>OID</th>
+                <th>QUERY</th>
+                <th>STATUS</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      <div className="pagination-controls">
-        <div className="items-per-page">
-          Show{" "}
-          <select
-            value={itemsPerPage}
-            onChange={(e) => setItemsPerPage(parseInt(e.target.value))}
-          >
-            {[5, 10, 20].map((count) => (
-              <option key={count} value={count}>
-                {count}
-              </option>
-            ))}
-          </select>{" "}
-          entries
+            </thead>
+            <tbody>
+              {paginatedData?.map((item, index) => (
+                <tr key={item.OID}>
+                  <td>{(currentPage - 1) * itemsPerPage + index + 1}</td>
+                  <td
+                    className="clickable-cell"
+                    onClick={() => goQueryDetails(index)}
+                  >
+                    {item.OID}
+                  </td>
+                  <td
+                    className="query-cell clickable-cell"
+                    onClick={() => goQueryDetails(index)}
+                  >
+                    {item.Query}
+                  </td>
+                  <td>{item.ResponseCode === "Success" ? "✅" : ""}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
 
-        <div className="pagination-buttons">
-          <button
-            onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
-            disabled={currentPage === 1}
-          >
-            Prev
-          </button>
+        <div className="pagination-controls">
+          <div className="items-per-page">
+            Show{" "}
+            <select
+              value={itemsPerPage}
+              onChange={(e) => setItemsPerPage(parseInt(e.target.value))}
+            >
+              {[5, 10, 20].map((count) => (
+                <option key={count} value={count}>
+                  {count}
+                </option>
+              ))}
+            </select>{" "}
+            entries
+          </div>
 
-          {(() => {
-            const maxButtons = 5;
-            let startPage = Math.max(currentPage - Math.floor(maxButtons / 2), 1);
-            let endPage = startPage + maxButtons - 1;
+          <div className="pagination-buttons">
+            <button
+              onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+              disabled={currentPage === 1}
+            >
+              Prev
+            </button>
 
-            if (endPage > totalPages) {
-              endPage = totalPages;
-              startPage = Math.max(endPage - maxButtons + 1, 1);
-            }
+            {(() => {
+              const maxButtons = 5;
+              let startPage = Math.max(
+                currentPage - Math.floor(maxButtons / 2),
+                1
+              );
+              let endPage = startPage + maxButtons - 1;
 
-            return Array.from({ length: endPage - startPage + 1 }, (_, i) => startPage + i).map(
-              (page) => (
+              if (endPage > totalPages) {
+                endPage = totalPages;
+                startPage = Math.max(endPage - maxButtons + 1, 1);
+              }
+
+              return Array.from(
+                { length: endPage - startPage + 1 },
+                (_, i) => startPage + i
+              ).map((page) => (
                 <button
                   key={page}
                   className={page === currentPage ? "active" : ""}
@@ -305,20 +324,18 @@ const QueryList: React.FC<QueryListProps> = ({ data, goHome, goChat,setQueryData
                 >
                   {page}
                 </button>
-              )
-            );
-          })()}
+              ));
+            })()}
 
-
-          <button
-            onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
-            disabled={currentPage === totalPages}
-          >
-            Next
-          </button>
+            <button
+              onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
+              disabled={currentPage === totalPages}
+            >
+              Next
+            </button>
+          </div>
         </div>
       </div>
-
       {showModal && (
         <div className="modal-overlay">
           <div className="modal-content">

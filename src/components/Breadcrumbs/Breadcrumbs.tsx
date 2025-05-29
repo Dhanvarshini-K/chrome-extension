@@ -7,6 +7,7 @@ interface BreadcrumbsProps {
   showQueryList: boolean;
   onHomeClick: () => void;
   onQueryListClick?: () => void;
+  currentPageLabel: string
 }
 
 const Breadcrumbs: React.FC<BreadcrumbsProps> = ({
@@ -14,12 +15,13 @@ const Breadcrumbs: React.FC<BreadcrumbsProps> = ({
   showQueryList,
   onHomeClick,
   onQueryListClick,
+  currentPageLabel,
 }) => {
   return (
     <div className="breadcrumb-container">
       {showHome && (
         <span className="breadcrumb-item" onClick={onHomeClick}>
-          <FaHome size={20}/>
+          <FaHome size={20} />
         </span>
       )}
       {showQueryList && (
@@ -29,6 +31,12 @@ const Breadcrumbs: React.FC<BreadcrumbsProps> = ({
             Query List
           </span>
         </div>
+      )}
+      {currentPageLabel && (
+        <>
+          <span className="breadcrumb-separator">/</span>
+          <span className="breadcrumb-current">{currentPageLabel}</span>
+        </>
       )}
     </div>
   );

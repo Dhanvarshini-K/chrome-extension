@@ -342,6 +342,7 @@ const Chatgpt = ({
         showQueryList
         onHomeClick={goHome}
         onQueryListClick={goQueryList}
+        currentPageLabel="Query Details"
       />
       <p className="query-details-title">Query Details</p>
 
