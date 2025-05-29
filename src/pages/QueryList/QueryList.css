@@ -37,7 +37,6 @@
   border: 1px solid #c3e6cb;
 }
 
-
 .query-title {
   font-size: 1.4rem;
   margin-bottom: 1rem;
@@ -50,7 +49,7 @@
 
 .query-table {
   width: 100%;
-  min-width: 600px;
+  min-width: 337px;
   border-collapse: collapse;
 }
 
@@ -68,7 +67,6 @@
 .query-list-container {
   padding: 1rem;
 }
-
 
 .modal-overlay {
   position: fixed;
@@ -123,17 +121,19 @@
   background-color: #5a6268;
 }
 
-
 .spinner {
   animation: spin 1s linear infinite;
   display: inline-block;
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
-
 
 .clear-button {
   padding: 8px 16px;
@@ -146,7 +146,7 @@
 }
 
 .clear-button.danger {
-  background-color: #e53e3e; 
+  background-color: #e53e3e;
   color: white;
 }
 
@@ -155,7 +155,7 @@
 }
 
 .clear-button.danger:disabled {
-  background-color: #f9a8a8; 
+  background-color: #f9a8a8;
   cursor: not-allowed;
   color: #fff5f5;
 }
@@ -190,7 +190,6 @@
   padding: 6px 12px;
 }
 
-
 .pagination-controls {
   display: flex;
   justify-content: space-between;
@@ -222,4 +221,17 @@
   background-color: #007bff;
   color: white;
   font-weight: bold;
+}
+
+.query-cell {
+  max-width: 138px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.clickable-cell {
+  cursor: pointer;
+}
+.clickable-cell:hover {
+  color: blue;
 }

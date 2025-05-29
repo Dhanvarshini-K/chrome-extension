@@ -1,6 +1,6 @@
 import { useMemo, useEffect } from "react";
 import "./QueryList.css";
-import { FaArrowRight, FaSpinner } from "react-icons/fa";
+import { FaSpinner } from "react-icons/fa";
 import Breadcrumbs from "../../components/Breadcrumbs/Breadcrumbs";
 import Button from "../../components/Button/Button";
 import { HEADERS, type QueryItem } from "../../types";
@@ -16,7 +16,7 @@ interface QueryListProps {
   refreshQueryData: () => Promise<void>;
 }
 
-const QueryList: React.FC<QueryListProps> = ({ data, goHome, goChat, setQueryData, refreshQueryData }) => {
+const QueryList: React.FC<QueryListProps> = ({ data, goHome, goChat,setQueryData, refreshQueryData }) => {
   const [showModal, setShowModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -176,6 +176,10 @@ const QueryList: React.FC<QueryListProps> = ({ data, goHome, goChat, setQueryDat
     setShowModal(false);
   }
 
+  function goQueryDetails(index: number) {
+    return goChat(data[index])
+  }
+
   return (
     <div className="query-list-container">
       <div className="top-bar">
@@ -208,23 +212,18 @@ const QueryList: React.FC<QueryListProps> = ({ data, goHome, goChat, setQueryDat
         <table className="query-table">
           <thead>
             <tr>
+              <th>S.NO</th>
               <th>OID</th>
               <th>QUERY</th>
-              <th>VIEW</th>
               <th>STATUS</th>
             </tr>
           </thead>
           <tbody>
             {paginatedData?.map((item, index) => (
               <tr key={item.OID}>
-                <td>{item.OID}</td>
-                <td>{item.Query}</td>
-                <td>
-                  <FaArrowRight
-                    onClick={() => goChat(data[index])}
-                    className="arrow-icon"
-                  />
-                </td>
+                <td>{(currentPage - 1) * itemsPerPage + index + 1}</td>
+                <td className="clickable-cell" onClick={() => goQueryDetails(index)}>{item.OID}</td>
+                <td  className="query-cell clickable-cell" onClick={() =>goQueryDetails(index)}>{item.Query}</td>
                 <td>{item.ResponseCode === "Success" ? "✅" : ""}</td>
               </tr>
             ))}
