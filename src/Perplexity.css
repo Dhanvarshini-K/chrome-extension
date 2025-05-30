@@ -1,0 +1,69 @@
+.query-details-container {
+    padding: "1rem";
+    width: 370px;
+}
+
+.query-details-title {
+    font-size: "1.5rem";
+    margin-bottom: "1rem";
+    text-align: "center";
+    font-weight: bold;
+}
+
+.field-text {
+    font-weight: bold;
+}
+
+.value-container {
+    display: flex;
+    justify-content: space-between;
+}
+
+.field-value-container {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    background: #f9f9f9;
+
+}
+
+
+.save-extract-buttons-container {
+    /* display: flex; */
+    /* gap: 8px; */
+}
+
+
+.tab-buttons {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 1rem;
+}
+
+.tab-button {
+  background-color: #ecf0f1;
+  color: #333;
+}
+
+.tab-button.extracted {
+  background-color: #28a745;
+  color: white;
+}
+
+
+.tab-content {
+  margin-bottom: 1rem;
+}
+
+.pre-block {
+  white-space: pre-wrap;
+  background: #f0f0f0;
+  padding: 0.5rem;
+  border-radius: 4px;
+  font-family: monospace;
+}

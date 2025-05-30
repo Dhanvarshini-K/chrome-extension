@@ -176,3 +176,14 @@ console.log("✅ Content script loaded!");
     screenshots,
   });
 })();
+
+window.addEventListener("message", (event) => {
+  if (event.source !== window) return;
+
+  if (event.data.type === "CITATIONS_DATA_FROM_PAGE") {
+    chrome.runtime.sendMessage({
+      type: "SAVE_CITATIONS",
+      payload: event.data.payload,
+    });
+  }
+});

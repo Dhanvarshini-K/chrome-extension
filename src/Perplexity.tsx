@@ -2,31 +2,80 @@
 import { useEffect, useState } from "react";
 import TurnDown from "turndown";
 import "./App.css";
+import Button from "./components/Button/Button";
+import CopyButton from "./components/CopyButton/CopyButton";
+import Breadcrumbs from "./components/Breadcrumbs/Breadcrumbs";
+import { AgentToAiType, AiAlias, ResponseTabs, type AiAliasType, type AiType, type QueryFormData, type ResponseTabsType } from "./types";
+import { handleScreenshot } from "./utils/screenshotUtils";
+import { saveOrUpdate } from "./utils";
 
 type ExtractedData = {
   html: string;
   text: string;
 };
 
-let citations = `window.open = function(url) { window._capturedURL = url; return null; };
-let sources = [];
-document.querySelectorAll('div.cursor-pointer div.line-clamp-1.transition-colors').forEach(x => {
-  x.click();
-  sources.push({
-    title: x.innerHTML,
-    url: window._capturedURL
-  });
-});`;
-citations +=
-  "const md = sources.map(page => `[${page.title}](${page.url})`).join('##NEWLINE##');";
-citations += "copy(md);";
 
-function Perplexity() {
+interface PerplexityProps {
+  goBack?: () => void;
+  goHome: () => void;
+  goQueryList: () => void;
+  queryData: QueryFormData | null;
+  refreshQueryData: () => Promise<void>;
+}
+
+function Perplexity({ queryData, goHome, goQueryList, refreshQueryData }: PerplexityProps) {
   const [data, setData] = useState<ExtractedData>({ html: "", text: "" });
-  const [activeTab, setActiveTab] = useState<"html" | "markdown" | "">("");
-  // const [screenshot, setScreenshot] = useState<string>("");
-
+  const [activeTab, setActiveTab] = useState<ResponseTabsType>(ResponseTabs.HTML);
   const [id, setId] = useState<string>("");
+
+  let citations = '';
+
+
+  const [extractedTabs, setExtractedTabs] = useState<
+    Record<ResponseTabsType, boolean>
+  >({
+    html: false,
+    markdown: false,
+    citations: false,
+  });
+  const triggerExtractCitations = async () => {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+
+    if (!tab.id) {
+      console.error("Could not find active tab ID.");
+      return;
+    }
+
+    chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      func: () => {
+        const script = document.createElement("script");
+        script.src = chrome.runtime.getURL("inject.js");
+        document.documentElement.appendChild(script);
+      },
+    });
+
+
+
+  };
+
+
+  useEffect(() => {
+    const extractAllData = async () => {
+      await triggerExtract();
+      await triggerExtractCitations();
+      citations =localStorage.getItem("citations") || "";
+
+      
+      setExtractedTabs({
+        html: true,
+        markdown: true,
+        citations: true,
+      });
+    };
+
+    extractAllData();
+  }, []);
 
   useEffect(() => {
     const extractIdFromUrl = async () => {
@@ -86,10 +135,6 @@ function Perplexity() {
     );
   };
 
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-  };
-
   const renderOutput = () => {
     if (!data.html) return null;
 
@@ -103,7 +148,7 @@ function Perplexity() {
     const markdownSingleLine = markdown
       .replace(/\s+/g, " ")
       .replace(/\t/g, " ")
-      .replace(/\n/g, " ")
+      .replace(/\n/g, "##NEWLINE##")
       .trim();
 
     return { htmlSingleLine, markdownSingleLine };
@@ -161,116 +206,188 @@ function Perplexity() {
     });
   };
 
-  const [isExtracted, setIsExtracted] = useState(false);
 
-  const handleTabClick = (tabName: string) => {
-    if (!isExtracted) {
-      triggerExtract();
-      setIsExtracted(true);
-    }
-    setActiveTab(tabName as "html" | "markdown");
+  const handleTabClick = (tabName: ResponseTabsType) => {
+    setActiveTab(tabName);
   };
 
+
+  const { OID = "", Query = "", Engine = "" } = queryData || {};
+
+  const formattedDate = new Date()
+    .toLocaleString("en-US", {
+      month: "2-digit",
+      day: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    })
+    .replace(",", "");
+
+  const tabs: ResponseTabsType[] = Object.values(ResponseTabs);
+
+  const aiType: AiType = AgentToAiType[Engine];  // "chatgpt"
+  const alias: AiAliasType = AiAlias[aiType];        // "cgp"
+  const ResponseImage = `${alias}${OID}.png`;       // "cgp123.png"
+
+
+  const savePayload = async () => {
+    const responseText = output?.markdownSingleLine || "";
+    const responseHTML = output?.htmlSingleLine || "";
+    const sources =
+      citations.includes("No content found") && !citations.startsWith("[")
+        ? ""
+        : citations;
+    const timestamp = formattedDate;
+
+    const isComplete =
+      id && OID && Query && responseText && responseHTML && timestamp;
+    const responseCode = isComplete ? "Success" : "";
+
+
+
+    const payload = {
+      ChatID: id,
+      OID,
+      Query,
+      ResponseText: responseText,
+      ResponseHTML: responseHTML,
+      Sources: sources,
+      TimeStamp: timestamp,
+      ResponseImage,
+      ResponseCode: responseCode
+    };
+
+    try {
+      await saveOrUpdate(payload);
+      await refreshQueryData();
+      goQueryList();
+      alert("Saved successfully to IndexedDB!");
+    } catch (error) {
+      console.error("Error saving to IndexedDB:", error);
+      alert("Error saving data.");
+    }
+  };
+
+  const handleSave = async () => {
+    if (!data.html) {
+      console.log("Triggering extract since data.html is empty...");
+      await triggerExtract();
+      setTimeout(() => {
+        savePayload();
+      }, 1000);
+    } else {
+      savePayload();
+    }
+  };
   return (
-    <div style={{ padding: "1rem", width: 300 }}>
-      <div style={{ marginTop: "1rem" }}>
-        <div className="flex font-large">
-          <p> ID: {id}</p>
-          <button onClick={() => copyToClipboard(id)}>Copy </button>
+    <div className="query-details-container">
+      <Breadcrumbs
+        showHome
+        showQueryList
+        onHomeClick={goHome}
+        onQueryListClick={goQueryList}
+      />
+      <p className="query-details-title">Query Details</p>
+
+      <div className="field-value-container">
+        <div>
+          <p className="field-text">Query ID:</p>
+          <div className="value-container">
+            <span>{OID}</span>
+            <CopyButton value={OID} />
+          </div>
         </div>
-        <div className="flex font-large" style={{ marginTop: "1rem" }}>
-          <p>
-            Date:{" "}
-            {new Date()
-              .toLocaleString("en-US", {
-                month: "2-digit",
-                day: "2-digit",
-                year: "numeric",
-                hour: "2-digit",
-                minute: "2-digit",
-                hour12: false,
-              })
-              .replace(",", "")}
-          </p>
-          <button
-            onClick={() =>
-              copyToClipboard(
-                new Date()
-                  .toLocaleString("en-US", {
-                    month: "2-digit",
-                    day: "2-digit",
-                    year: "numeric",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                    hour12: false,
-                  })
-                  .replace(",", "")
-              )
-            }
+
+        <div>
+          <p className="field-text">Query:</p>
+          <div className="value-container">
+            <span>{Query}</span>
+            <CopyButton value={Query} />
+          </div>
+        </div>
+
+        <div>
+          <p className="field-text">Chat ID:</p>
+          <div className="value-container">
+            <span>{id}</span>
+            <CopyButton value={id} />
+          </div>
+        </div>
+
+        <div>
+          <p className="field-text">Date:</p>
+          <div className="value-container">
+            <span>
+              {new Date()
+                .toLocaleString("en-US", {
+                  month: "2-digit",
+                  day: "2-digit",
+                  year: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                  hour12: false,
+                })
+                .replace(",", "")}
+            </span>
+            <CopyButton value={formattedDate} />
+          </div>
+        </div>
+      </div>
+
+      <div style={{ marginBottom: "1rem" }}>
+        <Button onClick={removeDiv}>Remove Related Divs</Button>
+      </div>
+
+      <div style={{ marginBottom: "1rem" }}>
+        <Button onClick={() => handleScreenshot(ResponseImage)}>Screenshot</Button>
+      </div>
+
+      <div className="tab-buttons">
+        {tabs.map((tab) => (
+          <Button
+            key={tab}
+            className={`tab-button ${extractedTabs[tab] ? "extracted" : ""}`}
+            onClick={() => handleTabClick(tab)}
           >
-            Copy
-          </button>
-        </div>
-      </div>
-      <div className="button-container">
-        {/* <button onClick={triggerExtract} style={{ marginBottom: "1rem" }}>
-          Extract Content
-        </button> */}
-
-        <button
-          onClick={() => copyToClipboard(citations)}
-          style={{ marginBottom: "1rem" }}
-        >
-          Copy Citations script
-        </button>
-
-        <button onClick={removeDiv} style={{ marginBottom: "1rem" }}>
-          Remove Related Div
-        </button>
-      </div>
-      <div style={{ display: "flex", marginTop: "1rem", gap: "8px" }}>
-        <button
-          style={{
-            flex: 1,
-            backgroundColor: activeTab === "html" ? "#ddd" : "#fff",
-          }}
-          onClick={() => handleTabClick("html")}
-        >
-          HTML
-        </button>
-        <button
-          style={{
-            flex: 1,
-            backgroundColor: activeTab === "markdown" ? "#ddd" : "#fff",
-          }}
-          onClick={() => handleTabClick("markdown")}
-        >
-          Markdown
-        </button>
+            {tab.charAt(0).toUpperCase() + tab.slice(1)}
+          </Button>
+        ))}
       </div>
 
-      <div style={{ marginTop: "1rem" }}>
-        {activeTab === "html" && output && (
+      <div className="tab-content">
+        {activeTab === ResponseTabs.HTML && output && (
           <div>
-            <button onClick={() => copyToClipboard(output.htmlSingleLine)}>
-              Copy HTML
-            </button>
-            <pre style={{ whiteSpace: "pre-wrap" }}>
-              {output.htmlSingleLine}
-            </pre>
+            <CopyButton value={output.htmlSingleLine} />
+            <pre className="pre-block">{output.htmlSingleLine}</pre>
           </div>
         )}
-
-        {activeTab === "markdown" && output && (
+        {activeTab === ResponseTabs.MARKDOWN && output && (
           <div>
-            <button onClick={() => copyToClipboard(output.markdownSingleLine)}>
-              Copy Markdown
-            </button>
-            <pre style={{ whiteSpace: "pre-wrap" }}>
-              {output.markdownSingleLine}
-            </pre>
+            <CopyButton value={output.markdownSingleLine} />
+            <pre className="pre-block">{output.markdownSingleLine}</pre>
           </div>
         )}
+        {activeTab === ResponseTabs.CITATIONS && citations && (
+          <div>
+            <CopyButton value={citations} />
+            <pre className="pre-block">{citations}</pre>
+          </div>
+        )}
+      </div>
+
+      <div className="save-extract-buttons-container">
+        <Button
+          onClick={handleSave}
+          disabled={
+            !extractedTabs.html ||
+            !extractedTabs.markdown ||
+            !extractedTabs.citations
+          }
+        >
+          Save
+        </Button>
       </div>
     </div>
   );
