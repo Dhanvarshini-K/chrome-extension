@@ -1,7 +1,7 @@
-export const ChatGptTabs = {
-  HTML : "html",
-  MARKDOWN : "markdown",
-  CITATIONS : "citations",
-}
+export const ResponseTabs = {
+  HTML: "html",
+  MARKDOWN: "markdown",
+  CITATIONS: "citations",
+} as const;
 
-export type ChatGptTabsType = typeof ChatGptTabs[keyof typeof ChatGptTabs];
+export type ResponseTabsType = typeof ResponseTabs[keyof typeof ResponseTabs];

@@ -8,10 +8,9 @@ import { getAllFromIndexedDB } from "./utils";
 import Chatgpt from "./ChatGpt";
 import type { QueryFormData, QueryItem } from "./types";
 
-const ai = import.meta.env.VITE_AI;
 
 function App() {
-  const [page, setPage] = useState<"home" | "queryList" | "chat">("home");
+  const [page, setPage] = useState<"home" | "queryList" | "chatgpt" | "perplexity">("home");
   const [selectedQuery, setSelectedQuery] = useState<QueryFormData | null>(null);
   const [queryData, setQueryData] = useState<QueryItem[]>([]);
 
@@ -35,20 +34,27 @@ function App() {
   const goQueryList = () => setPage("queryList");
   const goChat = (item: QueryFormData) => {
     setSelectedQuery(item);
-    setPage("chat");
+    const storedEngine = localStorage.getItem("engine");
+
+    if (storedEngine === "PplxPro") {
+      setPage("perplexity");
+    } else {
+      setPage("chatgpt");
+    }
   };
 
   const renderAppContent = () => {
 
-    if (ai === "perplexity") return <Perplexity />;
 
     switch (page) {
       case "home":
         return <Home goQueryList={goQueryList} refreshQueryData={refreshQueryData} />;
       case "queryList":
-        return <QueryList goHome={goHome} goChat={goChat} data={queryData} setQueryData={setQueryData} refreshQueryData={refreshQueryData}/>;
-      case "chat":
+        return <QueryList goHome={goHome} goChat={goChat} data={queryData} setQueryData={setQueryData} refreshQueryData={refreshQueryData} />;
+      case "chatgpt":
         return <Chatgpt queryData={selectedQuery} goHome={goHome} goQueryList={goQueryList} refreshQueryData={refreshQueryData} />;
+      case "perplexity":
+        return <Perplexity goHome={goHome} goQueryList={goQueryList} refreshQueryData={refreshQueryData} queryData={selectedQuery} />
       default:
         return <Home goQueryList={goQueryList} refreshQueryData={refreshQueryData} />;
     }

@@ -23,7 +23,7 @@
   ],
   "web_accessible_resources": [
     {
-      "resources": ["injected.js"],
+      "resources": ["inject.js"],
       "matches": ["<all_urls>"]
     }
   ],

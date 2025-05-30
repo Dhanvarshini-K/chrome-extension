@@ -6,7 +6,8 @@ import Button from "./components/Button/Button";
 import Breadcrumbs from "./components/Breadcrumbs/Breadcrumbs";
 import CopyButton from "./components/CopyButton/CopyButton";
 import { saveOrUpdate } from "./utils";
-import { type ChatGptTabsType, ChatGptTabs, type AiType, AgentToAiType, type AiAliasType, AiAlias, type QueryFormData } from "./types";
+import { type ResponseTabsType, ResponseTabs, type AiType, AgentToAiType, type AiAliasType, AiAlias, type QueryFormData } from "./types";
+import { handleScreenshot } from "./utils/screenshotUtils";
 
 type ExtractedData = {
   html: string;
@@ -30,10 +31,10 @@ const Chatgpt = ({
 }: ChatGptProps) => {
   const [data, setData] = useState<ExtractedData>({ html: "", text: "" });
   const [citations, setCitations] = useState<string>("");
-  const [activeTab, setActiveTab] = useState<ChatGptTabsType>("");
+  const [activeTab, setActiveTab] = useState<ResponseTabsType>(ResponseTabs.HTML);
 
   const [extractedTabs, setExtractedTabs] = useState<
-    Record<ChatGptTabsType, boolean>
+    Record<ResponseTabsType, boolean>
   >({
     html: false,
     markdown: false,
@@ -42,7 +43,7 @@ const Chatgpt = ({
 
   const [id, setId] = useState<string>("");
 
-  const tabs: ChatGptTabsType[] = Object.values(ChatGptTabs);
+  const tabs: ResponseTabsType[] = Object.values(ResponseTabs);
 
   useEffect(() => {
     const extractIdFromUrl = async () => {
@@ -222,7 +223,7 @@ const Chatgpt = ({
     });
   };
 
-  const handleTabClick = (tabName: ChatGptTabsType) => {
+  const handleTabClick = (tabName: ResponseTabsType) => {
     setActiveTab(tabName);
   };
 
@@ -282,58 +283,7 @@ const Chatgpt = ({
     }
   };
 
-  const handleScreenshot = async () => {
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      const tabId = tabs[0].id!;
 
-      // Inject the content script to scroll and trigger capture
-      chrome.scripting.executeScript({
-        target: { tabId },
-        files: ["content.js"],
-      });
-
-      // Listen for final images
-      chrome.runtime.onMessage.addListener(function listener(message) {
-        if (message.action === "doneCapturing") {
-          stitchAndDownload(message.screenshots);
-          chrome.runtime.onMessage.removeListener(listener); // Clean up
-        }
-      });
-    });
-  };
-
-  const stitchAndDownload = async (images: string[]) => {
-    const loadedImgs = await Promise.all(
-      images.map(
-        (src) =>
-          new Promise<HTMLImageElement>((resolve) => {
-            const img = new Image();
-            img.onload = () => resolve(img);
-            img.src = src;
-          })
-      )
-    );
-
-    const width = loadedImgs[0].width;
-    const totalHeight = loadedImgs.reduce((sum, img) => sum + img.height, 0);
-
-    const canvas = document.createElement("canvas");
-    canvas.width = width;
-    canvas.height = totalHeight;
-
-    const ctx = canvas.getContext("2d")!;
-    let offsetY = 0;
-    for (const img of loadedImgs) {
-      ctx.drawImage(img, 0, offsetY);
-      offsetY += img.height;
-    }
-
-    const finalImage = canvas.toDataURL("image/png");
-    const link = document.createElement("a");
-    link.href = finalImage;
-    link.download = ResponseImage;
-    link.click();
-  };
 
   return (
     <div className="query-details-container">
@@ -396,7 +346,7 @@ const Chatgpt = ({
       </div>
 
       <div style={{ marginBottom: "1rem" }}>
-        <Button onClick={handleScreenshot}>Screenshot</Button>
+        <Button onClick={() => handleScreenshot(ResponseImage)}>Screenshot</Button>
       </div>
 
       <div className="tab-buttons">
@@ -412,19 +362,19 @@ const Chatgpt = ({
       </div>
 
       <div className="tab-content">
-        {activeTab === ChatGptTabs.HTML && output && (
+        {activeTab === ResponseTabs.HTML && output && (
           <div>
             <CopyButton value={output.htmlSingleLine} />
             <pre className="pre-block">{output.htmlSingleLine}</pre>
           </div>
         )}
-        {activeTab === ChatGptTabs.MARKDOWN && output && (
+        {activeTab === ResponseTabs.MARKDOWN && output && (
           <div>
             <CopyButton value={output.markdownSingleLine} />
             <pre className="pre-block">{output.markdownSingleLine}</pre>
           </div>
         )}
-        {activeTab === ChatGptTabs.CITATIONS && citations && (
+        {activeTab === ResponseTabs.CITATIONS && citations && (
           <div>
             <CopyButton value={citations} />
             <pre className="pre-block">{citations}</pre>
