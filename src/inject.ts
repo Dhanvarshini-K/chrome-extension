@@ -45,7 +45,9 @@
     (window as any)._capturedURL = url?.toString() ?? "";
     return null;
   };
-
+  const OID = localStorage.getItem("OID")
+   console.log("oid from localstorage",OID);
+   const storageKey = `citations_${OID}`
 
   interface Citation {
     title: string;
@@ -59,12 +61,11 @@
   );
 
   const run = async () => {
-   localStorage.removeItem(`citations`);
+   localStorage.removeItem('citations');
 
     for (const element of elements) {
       (window as any)._capturedURL = "";
       element.click();
-      // element.addEventListener('click', (e) => e.preventDefault());
       await delay(300);
 
       const title = element.innerText.trim();
@@ -78,12 +79,13 @@
     console.log("sources", sources);
 
 
-    localStorage.setItem(`citations`, JSON.stringify(sources));
+    localStorage.setItem(storageKey, JSON.stringify(sources));
 
     window.postMessage(
       {
         type: "CITATIONS_FOUND",
         citations: sources,
+        OID: OID
       },
       "*"
     );

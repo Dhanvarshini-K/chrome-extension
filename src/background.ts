@@ -44,25 +44,17 @@ chrome.tabs.onUpdated.addListener(async (tabId, _info, tab) => {
 });
 
 
-// chrome.runtime.onMessage.addListener((message, _sender, _sendResponse) => {
-//   console.log('message',message);
-
-//   if (message.type === "SAVE_CITATIONS") {
-//     chrome.storage.local.remove("citations");
-//     chrome.storage.local.set({ citations: message.citations }, () => {
-//       console.log("✅ Saved citations");
-//     });
-//   }
-// });
 
 
 
 chrome.runtime.onMessage.addListener((message) => {
   if (message.type === "SAVE_CITATIONS") {
-    const queryId = message.queryId;
-    const storageKey = `citations_${queryId}`;
+    const OID = message.OID;
+    const storageKey = `citations_${OID}`;
 
-    if (!queryId) {
+    
+
+    if (!OID) {
       console.error("Missing queryId");
       return;
     }
