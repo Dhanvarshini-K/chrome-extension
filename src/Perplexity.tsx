@@ -842,7 +842,7 @@
 //testing
 
 // * eslint-disable @typescript-eslint/no-explicit-any */
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import TurnDown from "turndown";
 import "./App.css";
 import Button from "./components/Button/Button";
@@ -884,6 +884,9 @@ function Perplexity({
     ResponseTabs.HTML
   );
   const [id, setId] = useState<string>("");
+  const [html, setHtml] = useState("");
+  const [markdown, setMarkdown] = useState("");
+
   const [citationsData, setCitationsData] = useState("");
   const [extractedTabs, setExtractedTabs] = useState<
     Record<ResponseTabsType, boolean>
@@ -902,10 +905,6 @@ function Perplexity({
     if (tab?.id) {
       await chrome.scripting.executeScript({
         target: { tabId: tab.id },
-        files: ["clickSources.js"],
-      });
-      await chrome.scripting.executeScript({
-        target: { tabId: tab.id },
         func: () => {
           const script = document.createElement("script");
           script.src = chrome.runtime.getURL("inject.js");
@@ -913,44 +912,12 @@ function Perplexity({
           document.documentElement.appendChild(script);
         },
       });
+
+      console.log("citations perplexity", localStorage.getItem("citations"))
     }
+
   };
 
-  // useEffect(() => {
-  //   injectScript();
-  // }, []);
-
-  useEffect(() => {
-    chrome.storage.local.get("citations", (result) => {
-      if (chrome.runtime.lastError) {
-        console.error("Error reading storage:", chrome.runtime.lastError);
-      } else {
-        const markdown = result.citations
-          .map((page: any) => `[${page.title}](${page.url})`)
-          .join("##NEWLINE##");
-
-        setCitationsData(markdown || "");
-      }
-    });
-  }, []);
-
-  useEffect(() => {
-    const getCitations = () => {
-      chrome.storage.local.get("citations", (result) => {
-        if (chrome.runtime.lastError) {
-          console.error("Error reading citations:", chrome.runtime.lastError);
-        } else {
-          const markdown = (result?.citations || [])
-            .map((page: any) => `[${page.title}](${page.url})`)
-            .join("  \n");
-          setCitationsData(markdown);
-        }
-      });
-    };
-
-    const interval = setInterval(getCitations, 3000);
-    return () => clearInterval(interval);
-  }, []);
 
   const triggerExtract = async () => {
     const [tab] = await chrome.tabs.query({
@@ -972,6 +939,8 @@ function Perplexity({
     );
   };
 
+
+
   const renderOutput = () => {
     if (!data.html) return null;
 
@@ -988,53 +957,136 @@ function Perplexity({
       .replace(/\n/g, "##NEWLINE##")
       .trim();
 
-    return { htmlSingleLine, markdownSingleLine };
+    setHtml(htmlSingleLine);
+    setMarkdown(markdownSingleLine);
   };
+  useEffect(() => {
+    if (data.html) {
+      console.log("Extracted HTML length:", data.html.length);
+      renderOutput();
+    }
+  }, [data.html]);
 
-  const output = useMemo(() => renderOutput(), [data.html]);
+  function getChatId(url: string): string | null {
+    try {
+      const parsedUrl = new URL(url);
+      const lastSegment = parsedUrl.pathname.split("/").pop() || "";
+      const parts = lastSegment.split("-");
+      const possibleId = parts[parts.length - 1];
+
+      return /^[a-zA-Z0-9_-]{8,}$/.test(possibleId) ? possibleId : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
 
   useEffect(() => {
-    const extractAllData = async () => {
-      await triggerExtract();
-    };
-    extractAllData();
-  }, [triggerExtract]);
+    let currentUrl = "";
 
+    const interval = setInterval(async () => {
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      const newUrl = tab?.url || "";
+
+      if (newUrl !== currentUrl) {
+        currentUrl = newUrl;
+        const chatId = getChatId(newUrl);
+        if (chatId) {
+          console.log("New Chat ID:", chatId);
+          setId(chatId);
+        }
+      }
+    }, 1000); // Check every 1 second
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // useEffect(() => {
+  //   const extractAllData = async () => {
+  //     await triggerExtract();
+  //   };
+  //   console.log('id', id);
+
+  // extractAllData();
+  // }, []);
+
+  // const extractIdFromUrl = async () => {
+  //   console.log("Extracting ID from URL...");
+  //   const [tab] = await chrome.tabs.query({
+  //     active: true,
+  //     currentWindow: true,
+  //   });
+  //   const url = tab.url || "";
+
+  //   console.log("URL:", url);
+  //   // function extractLastSegment(text: string) {
+  //   //   // Remove query string if present
+  //   //   const cleanedText = text.split("?")[0];
+
+  //   //   // Split by hyphen and return the last part
+  //   //   const parts = cleanedText.split("-");
+  //   //   return parts[parts.length - 1];
+  //   // }
+
+  //   function getChatIdFromUrl(url: string): string | null {
+  //     if (!url.includes("/search/")) return null;
+
+  //     const path = url.split("/search/")[1]?.split("?")[0]; // remove query params
+  //     const parts = path?.split("-");
+
+  //     if (!parts || parts.length < 2) return null;
+
+  //     const possibleId = parts[parts.length - 1];
+
+  //     // Validate: must be alphanumeric and at least 8 chars
+  //     const isValid = /^[a-zA-Z0-9_-]{8,}$/.test(possibleId);
+  //     return isValid ? possibleId : null;
+  //   }
+
+  //   const id = getChatIdFromUrl(url);
+  //   console.log("Extracted ID:", id);
+  //   if (id) {
+  //     setId(id);
+  //   }
+  // };
+
+  console.log('html', html);
   useEffect(() => {
+
     setExtractedTabs({
-      html: output?.htmlSingleLine ? true : false,
-      markdown: output?.markdownSingleLine ? true : false,
+      html: html !== 'No content found' ? true : false,
+      markdown: markdown !== 'No content found' ? true : false,
       citations: citationsData !== "" ? true : false,
     });
-    injectScript();
-  }, [output, citationsData]);
 
-  useEffect(() => {
-    const extractIdFromUrl = async () => {
-      console.log("Extracting ID from URL...");
-      const [tab] = await chrome.tabs.query({
-        active: true,
-        currentWindow: true,
-      });
-      const url = tab.url || "";
-      console.log("URL:", url);
-      function extractLastSegment(text: string) {
-        // Remove query string if present
-        const cleanedText = text.split("?")[0];
+  }, [html, markdown, citationsData]);
 
-        // Split by hyphen and return the last part
-        const parts = cleanedText.split("-");
-        return parts[parts.length - 1];
-      }
-      const id = extractLastSegment(url);
-      console.log("Extracted ID:", id);
-      if (id) {
-        setId(id);
-      }
-    };
+  // useEffect(() => {
+  //   const extractIdFromUrl = async () => {
+  //     console.log("Extracting ID from URL...");
+  //     const [tab] = await chrome.tabs.query({
+  //       active: true,
+  //       currentWindow: true,
+  //     });
+  //     const url = tab.url || "";
+  //     console.log("URL:", url);
+  //     function extractLastSegment(text: string) {
+  //       // Remove query string if present
+  //       const cleanedText = text.split("?")[0];
 
-    extractIdFromUrl();
-  }, []);
+  //       // Split by hyphen and return the last part
+  //       const parts = cleanedText.split("-");
+  //       return parts[parts.length - 1];
+  //     }
+  //     const id = extractLastSegment(url);
+  //     console.log("Extracted ID:", id);
+  //     if (id) {
+  //       setId(id);
+  //     }
+  //   };
+
+  //   extractIdFromUrl();
+  // }, []);
 
   useEffect(() => {
     const listener = (message: any) => {
@@ -1097,9 +1149,78 @@ function Perplexity({
     });
   };
 
-  const handleTabClick = (tabName: ResponseTabsType) => {
+  // const handleTabClick = async (tabName: ResponseTabsType) => {
+  //   if (tabName === ResponseTabs.CITATIONS) {
+  //     await injectScript();
+  //     // chrome.storage.local.get("citations", (result) => {
+  //     //   console.log("📄 Got citations:", result.citations);
+  //     //   // setCitationsData(result.citations || []);
+  //     // });
+  //   }
+  //   setActiveTab(tabName);
+  // };
+
+
+  const handleTabClick = async (tabName: ResponseTabsType) => {
+    if (tabName === ResponseTabs.CITATIONS) {
+      await injectScript(); // injects your main scraping script
+
+      const [tab] = await chrome.tabs.query({
+        active: true,
+        currentWindow: true,
+      });
+
+      if (tab?.id) {
+        // Inject the relay listener into the tab to capture window.postMessage
+        await chrome.scripting.executeScript({
+          target: { tabId: tab.id },
+          func: () => {
+
+
+            window.addEventListener("message", (event) => {
+              console.log("event", event);
+              if (event.source !== window) return;
+
+              if (event.data?.type === "CITATIONS_FOUND") {
+
+                const markdown = event.data.citations
+                  .map((page: any) => `[${page.title}](${page.url})`)
+                  .join("##NEWLINE##");
+
+                console.log('markdown', markdown);
+
+
+                // setCitationsData(markdown || "");
+                chrome.runtime.sendMessage({
+                  type: "SAVE_CITATIONS",
+                  citations: event.data.citations,
+                  queryId: OID
+                });
+              }
+            });
+          },
+        });
+
+        // // Wait a bit for the background to save data
+        setTimeout(() => {
+          const storageKey = 'citations'; // Same dynamic key
+
+          chrome.storage.local.get([storageKey], (result) => {
+            const citations = result[storageKey];
+            const markdown = citations
+              ?.map((page: any) => `[${page.title}](${page.url})`)
+              .join("##NEWLINE##");
+
+            setCitationsData(markdown || "");
+          });
+
+        }, 1000); // Small delay to ensure data is saved
+      }
+    }
+
     setActiveTab(tabName);
   };
+
 
   const { OID = "", Query = "", Engine = "" } = queryData || {};
 
@@ -1121,11 +1242,11 @@ function Perplexity({
   const ResponseImage = `${alias}${OID}.png`; // "cgp123.png"
 
   const savePayload = async () => {
-    const responseText = output?.markdownSingleLine || "";
-    const responseHTML = output?.htmlSingleLine || "";
+    const responseText = markdown || "";
+    const responseHTML = html || "";
     const sources =
       citationsData.includes("No content found") &&
-      !citationsData.startsWith("[")
+        !citationsData.startsWith("[")
         ? ""
         : citationsData;
     const timestamp = formattedDate;
@@ -1169,6 +1290,10 @@ function Perplexity({
     }
   };
 
+  const startExtract = async () => {
+    await triggerExtract();
+  }
+
   return (
     <div className="query-details-container">
       <Breadcrumbs
@@ -1207,10 +1332,13 @@ function Perplexity({
 
         <div>
           <p className="field-text">Chat ID:</p>
-          <div className="value-container">
+          {data.html !== '' ? (<div className="value-container">
             <span>{id}</span>
             <CopyButton value={id} />
-          </div>
+          </div>) : (
+            <span>Please enter a prompt to see the Chat ID.</span>
+          )}
+
         </div>
 
         <div>
@@ -1243,51 +1371,63 @@ function Perplexity({
         </Button>
       </div>
 
-      <div className="tab-buttons">
-        {tabs.map((tab) => (
-          <Button
-            key={tab}
-            className={`tab-button ${extractedTabs[tab] ? "extracted" : ""}`}
-            onClick={() => handleTabClick(tab)}
-          >
-            {tab.charAt(0).toUpperCase() + tab.slice(1)}
-          </Button>
-        ))}
-      </div>
+      {html && markdown ? (
+        <>
+          <div className="tab-buttons">
+            {tabs.map((tab) => (
+              <Button
+                key={tab}
+                className={`tab-button ${extractedTabs[tab] ? "extracted" : ""}`}
+                onClick={() => handleTabClick(tab)}
+              >
+                {tab.charAt(0).toUpperCase() + tab.slice(1)}
+              </Button>
+            ))}
+          </div>
 
-      <div className="tab-content">
-        {activeTab === ResponseTabs.HTML && output && (
-          <div>
-            <CopyButton value={output.htmlSingleLine} />
-            <pre className="pre-block">{output.htmlSingleLine}</pre>
+          <div className="tab-content">
+            {activeTab === ResponseTabs.HTML && html && (
+              <div>
+                <CopyButton value={html} />
+                <pre className="pre-block">{html}</pre>
+              </div>
+            )}
+            {activeTab === ResponseTabs.MARKDOWN && markdown && (
+              <div>
+                <CopyButton value={markdown} />
+                <pre className="pre-block">{markdown}</pre>
+              </div>
+            )}
+            {activeTab === ResponseTabs.CITATIONS && citationsData && (
+              <div>
+                <CopyButton value={citationsData} />
+                <pre className="pre-block">{citationsData}</pre>
+              </div>
+            )}
           </div>
-        )}
-        {activeTab === ResponseTabs.MARKDOWN && output && (
-          <div>
-            <CopyButton value={output.markdownSingleLine} />
-            <pre className="pre-block">{output.markdownSingleLine}</pre>
-          </div>
-        )}
-        {activeTab === ResponseTabs.CITATIONS && citationsData && (
-          <div>
-            <CopyButton value={citationsData} />
-            <pre className="pre-block">{citationsData}</pre>
-          </div>
-        )}
-      </div>
 
-      <div className="save-extract-buttons-container">
+          <div className="save-extract-buttons-container">
+            <Button
+              onClick={handleSave}
+              disabled={
+                !extractedTabs.html ||
+                !extractedTabs.markdown ||
+                !extractedTabs.citations
+              }
+            >
+              Save
+            </Button>
+          </div>
+
+        </>
+      ) : (
         <Button
-          onClick={handleSave}
-          disabled={
-            !extractedTabs.html ||
-            !extractedTabs.markdown ||
-            !extractedTabs.citations
-          }
-        >
-          Save
-        </Button>
-      </div>
+          buttonText="Start extract"
+          onClick={startExtract}
+        />
+      )
+      }
+
     </div>
   );
 }

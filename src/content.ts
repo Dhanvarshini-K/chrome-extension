@@ -178,15 +178,65 @@ console.log("✅ Content script loaded!");
 })();
 
 // window.addEventListener("message", (event) => {
+//   console.log('event',event);
+//   console.log('chrome.runtime',chrome.runtime);
 //   if (event.source !== window) return;
 //   if (event.data.type === "CITATIONS_FOUND") {
+    
 //     console.log("📩 content.js received message", event.data.citations);
+    
 //     chrome.runtime.sendMessage({
 //       type: "CITATIONS",
 //       payload: event.data.citations,
 //     });
 //   }
 // });
+
+
+//new 
+window.addEventListener("message", (event) => {
+  if (event.source !== window) return;
+  if (event.data.type === "CITATIONS_FOUND") {
+    console.log("📩 Content script got citations", event.data.citations);
+
+    // try {
+    //   chrome.storage.local.set({ citations: event.data.citations }, () => {
+    //     if (chrome.runtime.lastError) {
+    //       console.error("❌ Storage error:", chrome.runtime.lastError.message);
+    //     } else {
+    //       console.log("✅ Citations saved to storage");
+    //     }
+    //   });
+    // } catch (e) {
+    //   console.error("❌ Failed to store citations:", e);
+    // }
+
+     window.dispatchEvent(
+      new CustomEvent("INTERNAL_CITATIONS_FOUND", {
+        detail: event.data.citations,
+      })
+    );
+  }
+});
+
+// Now a safe listener in content script context
+window.addEventListener("INTERNAL_CITATIONS_FOUND", (e: any) => {
+  const citations = e.detail;
+  console.log('citation inside internal citations found',citations);
+  
+  try {
+    chrome.storage.local.set({ citations }, () => {
+      if (chrome.runtime.lastError) {
+        console.error("❌ Error storing citations:", chrome.runtime.lastError.message);
+      } else {
+        console.log("✅ Citations stored successfully");
+      }
+    });
+  } catch (err) {
+    console.error("❌ Exception while storing:", err);
+  }
+});
+
 
 
 // Inject a script into the page to extract `localStorage` and post it back
@@ -197,6 +247,8 @@ const script = document.createElement("script");
 script.src = chrome.runtime.getURL("readLocalStorage.js");
 script.onload = () => script.remove();
 (document.head || document.documentElement).appendChild(script);
+console.log();
+
 
 // Listen for data from the injected script
 window.addEventListener("message", (event) => {
