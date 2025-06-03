@@ -844,7 +844,6 @@
 // * eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState } from "react";
 import TurnDown from "turndown";
-import "./App.css";
 import Button from "./components/Button/Button";
 import CopyButton from "./components/CopyButton/CopyButton";
 import Breadcrumbs from "./components/Breadcrumbs/Breadcrumbs";
@@ -859,6 +858,7 @@ import {
 } from "./types";
 import { handleScreenshot } from "./utils/screenshotUtils";
 import { saveOrUpdate } from "./utils";
+import "./Perplexity.css";
 
 type ExtractedData = {
   html: string;
@@ -913,11 +913,9 @@ function Perplexity({
         },
       });
 
-      console.log("citations perplexity", localStorage.getItem("citations"))
+      console.log("citations perplexity", localStorage.getItem("citations"));
     }
-
   };
-
 
   const triggerExtract = async () => {
     const [tab] = await chrome.tabs.query({
@@ -938,8 +936,6 @@ function Perplexity({
       }
     );
   };
-
-
 
   const renderOutput = () => {
     if (!data.html) return null;
@@ -980,12 +976,14 @@ function Perplexity({
     }
   }
 
-
   useEffect(() => {
     let currentUrl = "";
 
     const interval = setInterval(async () => {
-      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      const [tab] = await chrome.tabs.query({
+        active: true,
+        currentWindow: true,
+      });
       const newUrl = tab?.url || "";
 
       if (newUrl !== currentUrl) {
@@ -996,97 +994,20 @@ function Perplexity({
           setId(chatId);
         }
       }
-    }, 1000); // Check every 1 second
+    }, 1000);
 
     return () => clearInterval(interval);
   }, []);
 
-  // useEffect(() => {
-  //   const extractAllData = async () => {
-  //     await triggerExtract();
-  //   };
-  //   console.log('id', id);
-
-  // extractAllData();
-  // }, []);
-
-  // const extractIdFromUrl = async () => {
-  //   console.log("Extracting ID from URL...");
-  //   const [tab] = await chrome.tabs.query({
-  //     active: true,
-  //     currentWindow: true,
-  //   });
-  //   const url = tab.url || "";
-
-  //   console.log("URL:", url);
-  //   // function extractLastSegment(text: string) {
-  //   //   // Remove query string if present
-  //   //   const cleanedText = text.split("?")[0];
-
-  //   //   // Split by hyphen and return the last part
-  //   //   const parts = cleanedText.split("-");
-  //   //   return parts[parts.length - 1];
-  //   // }
-
-  //   function getChatIdFromUrl(url: string): string | null {
-  //     if (!url.includes("/search/")) return null;
-
-  //     const path = url.split("/search/")[1]?.split("?")[0]; // remove query params
-  //     const parts = path?.split("-");
-
-  //     if (!parts || parts.length < 2) return null;
-
-  //     const possibleId = parts[parts.length - 1];
-
-  //     // Validate: must be alphanumeric and at least 8 chars
-  //     const isValid = /^[a-zA-Z0-9_-]{8,}$/.test(possibleId);
-  //     return isValid ? possibleId : null;
-  //   }
-
-  //   const id = getChatIdFromUrl(url);
-  //   console.log("Extracted ID:", id);
-  //   if (id) {
-  //     setId(id);
-  //   }
-  // };
-
-  console.log('html', html);
   useEffect(() => {
-
     setExtractedTabs({
-      html: html !== 'No content found' ? true : false,
-      markdown: markdown !== 'No content found' ? true : false,
+      html: html !== "No content found" ? true : false,
+      markdown: markdown !== "No content found" ? true : false,
       citations: citationsData !== "" ? true : false,
     });
-
   }, [html, markdown, citationsData]);
 
-  // useEffect(() => {
-  //   const extractIdFromUrl = async () => {
-  //     console.log("Extracting ID from URL...");
-  //     const [tab] = await chrome.tabs.query({
-  //       active: true,
-  //       currentWindow: true,
-  //     });
-  //     const url = tab.url || "";
-  //     console.log("URL:", url);
-  //     function extractLastSegment(text: string) {
-  //       // Remove query string if present
-  //       const cleanedText = text.split("?")[0];
-
-  //       // Split by hyphen and return the last part
-  //       const parts = cleanedText.split("-");
-  //       return parts[parts.length - 1];
-  //     }
-  //     const id = extractLastSegment(url);
-  //     console.log("Extracted ID:", id);
-  //     if (id) {
-  //       setId(id);
-  //     }
-  //   };
-
-  //   extractIdFromUrl();
-  // }, []);
+  
 
   useEffect(() => {
     const listener = (message: any) => {
@@ -1140,7 +1061,6 @@ function Perplexity({
         document.querySelectorAll("*").forEach((el: any) => {
           el.style.color = "#555";
         });
-        // Remove specific layout elements with escaped selectors
         [
           ...document.querySelectorAll("div.-mx-sm.gap-xs.relative.flex"),
           ...document.querySelectorAll("div.gap-sm.grid.grid-cols-4.md\\:px-0"),
@@ -1149,21 +1069,10 @@ function Perplexity({
     });
   };
 
-  // const handleTabClick = async (tabName: ResponseTabsType) => {
-  //   if (tabName === ResponseTabs.CITATIONS) {
-  //     await injectScript();
-  //     // chrome.storage.local.get("citations", (result) => {
-  //     //   console.log("📄 Got citations:", result.citations);
-  //     //   // setCitationsData(result.citations || []);
-  //     // });
-  //   }
-  //   setActiveTab(tabName);
-  // };
-
 
   const handleTabClick = async (tabName: ResponseTabsType) => {
     if (tabName === ResponseTabs.CITATIONS) {
-      await injectScript(); // injects your main scraping script
+      await injectScript(); 
 
       const [tab] = await chrome.tabs.query({
         active: true,
@@ -1171,30 +1080,25 @@ function Perplexity({
       });
 
       if (tab?.id) {
-        // Inject the relay listener into the tab to capture window.postMessage
         await chrome.scripting.executeScript({
           target: { tabId: tab.id },
           func: () => {
-
-
             window.addEventListener("message", (event) => {
               console.log("event", event);
               if (event.source !== window) return;
 
               if (event.data?.type === "CITATIONS_FOUND") {
-
                 const markdown = event.data.citations
                   .map((page: any) => `[${page.title}](${page.url})`)
                   .join("##NEWLINE##");
 
-                console.log('markdown', markdown);
-
+                console.log("markdown", markdown);
 
                 // setCitationsData(markdown || "");
                 chrome.runtime.sendMessage({
                   type: "SAVE_CITATIONS",
                   citations: event.data.citations,
-                  queryId: OID
+                  queryId: OID,
                 });
               }
             });
@@ -1203,7 +1107,7 @@ function Perplexity({
 
         // // Wait a bit for the background to save data
         setTimeout(() => {
-          const storageKey = 'citations'; // Same dynamic key
+          const storageKey = "citations"; // Same dynamic key
 
           chrome.storage.local.get([storageKey], (result) => {
             const citations = result[storageKey];
@@ -1213,14 +1117,12 @@ function Perplexity({
 
             setCitationsData(markdown || "");
           });
-
         }, 1000); // Small delay to ensure data is saved
       }
     }
 
     setActiveTab(tabName);
   };
-
 
   const { OID = "", Query = "", Engine = "" } = queryData || {};
 
@@ -1246,7 +1148,7 @@ function Perplexity({
     const responseHTML = html || "";
     const sources =
       citationsData.includes("No content found") &&
-        !citationsData.startsWith("[")
+      !citationsData.startsWith("[")
         ? ""
         : citationsData;
     const timestamp = formattedDate;
@@ -1292,7 +1194,7 @@ function Perplexity({
 
   const startExtract = async () => {
     await triggerExtract();
-  }
+  };
 
   return (
     <div className="query-details-container">
@@ -1303,46 +1205,46 @@ function Perplexity({
         onQueryListClick={goQueryList}
         currentPageLabel="Query Details"
       />
-      <p className="query-details-title">Query Details</p>
 
       <div className="field-value-container">
-        <div>
-          <p className="field-text">Query ID:</p>
+        <div className="field-container">
+          <span className="field-text">Query ID:</span>
           <div className="value-container">
             <span>{OID}</span>
             <CopyButton value={OID} />
           </div>
         </div>
 
-        <div>
-          <p className="field-text">Engine:</p>
+        <div className="field-container">
+          <span className="field-text">Engine:</span>
           <div className="value-container">
             <span>{Engine}</span>
             <CopyButton value={Engine} />
           </div>
         </div>
 
-        <div>
-          <p className="field-text">Query:</p>
+        <div className="field-container">
+          <span className="field-text">Query:</span>
           <div className="value-container">
             <span>{Query}</span>
             <CopyButton value={Query} />
           </div>
         </div>
 
-        <div>
-          <p className="field-text">Chat ID:</p>
-          {data.html !== '' ? (<div className="value-container">
-            <span>{id}</span>
-            <CopyButton value={id} />
-          </div>) : (
+        <div className="field-container">
+          <span className="field-text">Chat ID:</span>
+          {data.html !== "" ? (
+            <div className="value-container">
+              <span>{id}</span>
+              <CopyButton value={id} />
+            </div>
+          ) : (
             <span>Please enter a prompt to see the Chat ID.</span>
           )}
-
         </div>
 
-        <div>
-          <p className="field-text">Date:</p>
+        <div className="field-container">
+          <span className="field-text">Date:</span>
           <div className="value-container">
             <span>
               {new Date()
@@ -1360,15 +1262,16 @@ function Perplexity({
           </div>
         </div>
       </div>
+      <div className="value-container">
+        <div style={{ marginBottom: "1rem" }}>
+          <Button onClick={removeDiv}>Remove Related Divs</Button>
+        </div>
 
-      <div style={{ marginBottom: "1rem" }}>
-        <Button onClick={removeDiv}>Remove Related Divs</Button>
-      </div>
-
-      <div style={{ marginBottom: "1rem" }}>
-        <Button onClick={() => handleScreenshot(ResponseImage)}>
-          Screenshot
-        </Button>
+        <div style={{ marginBottom: "1rem" , width: "45%"}}>
+          <Button onClick={() => handleScreenshot(ResponseImage)}>
+            Screenshot
+          </Button>
+        </div>
       </div>
 
       {html && markdown ? (
@@ -1377,7 +1280,9 @@ function Perplexity({
             {tabs.map((tab) => (
               <Button
                 key={tab}
-                className={`tab-button ${extractedTabs[tab] ? "extracted" : ""}`}
+                className={`tab-button ${
+                  extractedTabs[tab] ? "extracted" : ""
+                }`}
                 onClick={() => handleTabClick(tab)}
               >
                 {tab.charAt(0).toUpperCase() + tab.slice(1)}
@@ -1411,23 +1316,16 @@ function Perplexity({
               onClick={handleSave}
               disabled={
                 !extractedTabs.html ||
-                !extractedTabs.markdown ||
-                !extractedTabs.citations
+                !extractedTabs.markdown
               }
             >
               Save
             </Button>
           </div>
-
         </>
       ) : (
-        <Button
-          buttonText="Start extract"
-          onClick={startExtract}
-        />
-      )
-      }
-
+        <Button buttonText="Start Extract" onClick={startExtract} />
+      )}
     </div>
   );
 }
