@@ -190,14 +190,29 @@ const QueryList: React.FC<QueryListProps> = ({
     setShowModal(false);
   }
 
-  function goQueryDetails(index: number) {
-    return goChat(data[index]);
+  // function goQueryDetails(index: number) {
+  //   console.log("index",index);
+  //   console.log("data index",data[index])
+  //   return goChat(data[index]);
+  // }
+
+  function goQueryDetails(item: QueryItem) {
+    return goChat({
+      OID: item.OID,
+      Query: item.Query,
+      Engine: item.Engine,
+    });
   }
 
   return (
     <div className="query-list-container">
       <div className="top-bar">
-        <Breadcrumbs showHome showQueryList={false} onHomeClick={goHome} currentPageLabel="QueryList"/>
+        <Breadcrumbs
+          showHome
+          showQueryList={false}
+          onHomeClick={goHome}
+          currentPageLabel="QueryList"
+        />
 
         <div className="agent-dropdown">
           <button
@@ -259,13 +274,13 @@ const QueryList: React.FC<QueryListProps> = ({
                   <td>{(currentPage - 1) * itemsPerPage + index + 1}</td>
                   <td
                     className="clickable-cell"
-                    onClick={() => goQueryDetails(index)}
+                    onClick={() => goQueryDetails(item)}
                   >
                     {item.OID}
                   </td>
                   <td
                     className="query-cell clickable-cell"
-                    onClick={() => goQueryDetails(index)}
+                    onClick={() => goQueryDetails(item)}
                   >
                     {item.Query}
                   </td>

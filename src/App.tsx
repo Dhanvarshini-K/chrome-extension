@@ -33,6 +33,7 @@ function App() {
   const goHome = () => setPage("home");
   const goQueryList = () => setPage("queryList");
   const goChat = (item: QueryFormData) => {
+    console.log("item",item)
     setSelectedQuery(item);
     const storedEngine = localStorage.getItem("engine");
 
@@ -42,6 +43,10 @@ function App() {
       setPage("chatgpt");
     }
   };
+
+  useEffect(() => {
+    console.log("selectedQuery",selectedQuery)
+  })
 
   const renderAppContent = () => {
 
