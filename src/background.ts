@@ -3,14 +3,6 @@ chrome.runtime.onInstalled.addListener(() => {
   console.log("Extension installed");
 });
 
-chrome.runtime.onMessage.addListener((message) => {
-  if (message.type === "SAVE_CITATIONS") {
-    chrome.storage.local.set({ citations: message.payload }, () => {
-      console.log("Citations saved to storage:", message.payload);
-    });
-  }
-});
-
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg.type === "CAPTURE_VISIBLE") {
     console.log(sender);

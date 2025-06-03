@@ -1,4 +1,4 @@
-.query-details-container {
+/* .query-details-container {
     padding: "1rem";
     width: 370px;
 }
@@ -30,16 +30,16 @@
     margin-bottom: 1rem;
     background: #f9f9f9;
 
-}
+} */
 
 
-.save-extract-buttons-container {
+/* .save-extract-buttons-container { */
     /* display: flex; */
     /* gap: 8px; */
-}
+/* } */
 
 
-.tab-buttons {
+/* .tab-buttons {
   display: flex;
   gap: 8px;
   margin-bottom: 1rem;
@@ -66,4 +66,67 @@
   padding: 0.5rem;
   border-radius: 4px;
   font-family: monospace;
+} */
+
+
+.query-details-container {
+  padding: 10px;
+  max-width: 1000px;
+  margin: auto;
+}
+
+.query-box {
+  background: white;
+  padding: 10px;
+  border-radius: 8px;
+  box-shadow: 0 0 10px rgb(0 0 0 / 0.1);
+}
+
+.tabs {
+  display: flex;
+  gap: 10px;
+  margin: 15px 0;
+}
+
+.tabs button {
+  padding: 10px 15px;
+  border-radius: 20px;
+  border: 1px solid #555;
+  background-color: white;
+  cursor: pointer;
+  font-weight: 600;
+  color: #555;
+  transition: background-color 0.3s ease;
+}
+
+.tabs button.active {
+  background-color: #f5f5f5;
+  border-color: #999;
+}
+
+.tabs button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.response-content {
+  background: #eee;
+  padding: 10px;
+  border-radius: 8px;
+  white-space: pre-wrap;
+  max-height: 300px;
+  overflow-y: auto;
+  font-family: monospace;
+  margin-bottom: 10px;
+}
+
+.buttons {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-start;
+  flex-wrap: wrap;
+}
+
+.buttons button {
+  min-width: 120px;
 }

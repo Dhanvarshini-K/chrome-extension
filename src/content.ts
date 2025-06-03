@@ -177,13 +177,43 @@ console.log("✅ Content script loaded!");
   });
 })();
 
-window.addEventListener("message", (event) => {
-  if (event.source !== window) return;
+// window.addEventListener("message", (event) => {
+//   if (event.source !== window) return;
+//   if (event.data.type === "CITATIONS_FOUND") {
+//     console.log("📩 content.js received message", event.data.citations);
+//     chrome.runtime.sendMessage({
+//       type: "CITATIONS",
+//       payload: event.data.citations,
+//     });
+//   }
+// });
 
-  if (event.data.type === "CITATIONS_DATA_FROM_PAGE") {
-    chrome.runtime.sendMessage({
-      type: "SAVE_CITATIONS",
-      payload: event.data.payload,
+
+// Inject a script into the page to extract `localStorage` and post it back
+
+
+
+const script = document.createElement("script");
+script.src = chrome.runtime.getURL("readLocalStorage.js");
+script.onload = () => script.remove();
+(document.head || document.documentElement).appendChild(script);
+
+// Listen for data from the injected script
+window.addEventListener("message", (event) => {
+  console.log("event",event)
+  if (event.source !== window) return;
+  if (event.data.type === "LOCAL_CITATIONS") {
+    const citations = event.data.citations;
+
+    console.log("citations",citations)
+
+    // ✅ Save to extension storage
+    chrome.storage.local.set({ citations }, () => {
+      if (chrome.runtime.lastError) {
+        console.error("Storage error:", chrome.runtime.lastError);
+      } else {
+        console.log("✅ Citations saved to extension storage.");
+      }
     });
   }
 });

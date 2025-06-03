@@ -1,10 +1,47 @@
+// (() => {
+//   // Override window.open to capture the URL
+//   window.open = function (
+//     url?: string | URL,
+//     _target?: string,
+//     _features?: string
+//   ): Window | null {
+//     (window as any)._capturedURL = url?.toString() ?? "";
+//     return null;
+//   };
+
+//   interface Citation {
+//     title: string;
+//     url: string;
+//   }
+
+//   const sources: Citation[] = [];
+//   const elements = document.querySelectorAll<HTMLDivElement>(
+//     "div.cursor-pointer div.line-clamp-1.transition-colors"
+//   );
+
+//   elements.forEach((element) => {
+//     element.click();
+
+//     const title = element.innerText;
+//     const url = (window as any)._capturedURL || "";
+
+//     sources.push({ title, url });
+//   });
+
+//   const markdown = sources
+//     .map((page) => `[${page.title}](${page.url})`)
+//     .join("##NEWLINE##");
+
+//   console.log("📝 Extracted Citations:\n" + markdown);
+
+//   chrome.runtime.sendMessage({
+//     type: "CITATIONS_FOUND",
+//     payload: sources,
+//   });
+// })();
+
 (() => {
-  // Override window.open to capture the URL
-  window.open = function (
-    url?: string | URL,
-    _target?: string,
-    _features?: string
-  ): Window | null {
+  (window as any).open = function (url?: string | URL) {
     (window as any)._capturedURL = url?.toString() ?? "";
     return null;
   };
@@ -14,31 +51,34 @@
     url: string;
   }
 
+  const delay = (ms: number) => new Promise((res) => setTimeout(res, ms));
   const sources: Citation[] = [];
   const elements = document.querySelectorAll<HTMLDivElement>(
     "div.cursor-pointer div.line-clamp-1.transition-colors"
   );
 
-  elements.forEach((element) => {
-    element.click();
+  const run = async () => {
+    for (const element of elements) {
+      (window as any)._capturedURL = "";
+      element.click();
+      await delay(300);
 
-    const title = element.innerText;
-    const url = (window as any)._capturedURL || "";
+      const title = element.innerText.trim();
+      const url = (window as any)._capturedURL || "";
 
-    sources.push({ title, url });
-  });
+      if (title && url) {
+        sources.push({ title, url });
+      }
+    }
 
-  const markdown = sources
-    .map((page) => `[${page.title}](${page.url})`)
-    .join("##NEWLINE##");
+    console.log("sources", sources);
 
-  console.log("📝 Extracted Citations:\n" + markdown);
+    localStorage.setItem("citations", "");
 
-  window.postMessage(
-    {
-      type: "CITATIONS_DATA_FROM_PAGE",
-      payload: markdown,
-    },
-    "*"
-  );
+    localStorage.setItem("citations", JSON.stringify(sources));
+
+    // window.postMessage({ type: "CITATIONS_FOUND", citations: sources }, "*");
+  };
+
+  run();
 })();

@@ -6,14 +6,21 @@ import Button from "./components/Button/Button";
 import Breadcrumbs from "./components/Breadcrumbs/Breadcrumbs";
 import CopyButton from "./components/CopyButton/CopyButton";
 import { saveOrUpdate } from "./utils";
-import { type ResponseTabsType, ResponseTabs, type AiType, AgentToAiType, type AiAliasType, AiAlias, type QueryFormData } from "./types";
+import {
+  type ResponseTabsType,
+  ResponseTabs,
+  type AiType,
+  AgentToAiType,
+  type AiAliasType,
+  AiAlias,
+  type QueryFormData,
+} from "./types";
 import { handleScreenshot } from "./utils/screenshotUtils";
 
 type ExtractedData = {
   html: string;
   text: string;
 };
-
 
 interface ChatGptProps {
   goBack?: () => void;
@@ -31,7 +38,9 @@ const Chatgpt = ({
 }: ChatGptProps) => {
   const [data, setData] = useState<ExtractedData>({ html: "", text: "" });
   const [citations, setCitations] = useState<string>("");
-  const [activeTab, setActiveTab] = useState<ResponseTabsType>(ResponseTabs.HTML);
+  const [activeTab, setActiveTab] = useState<ResponseTabsType>(
+    ResponseTabs.HTML
+  );
 
   const [extractedTabs, setExtractedTabs] = useState<
     Record<ResponseTabsType, boolean>
@@ -61,7 +70,6 @@ const Chatgpt = ({
     extractIdFromUrl();
   }, []);
 
-
   useEffect(() => {
     const extractAllData = async () => {
       await triggerExtract();
@@ -76,7 +84,6 @@ const Chatgpt = ({
 
     extractAllData();
   }, []);
-
 
   useEffect(() => {
     const listener = (message: any) => {
@@ -229,9 +236,9 @@ const Chatgpt = ({
 
   const { OID = "", Query = "", Engine = "" } = queryData || {};
 
-  const aiType: AiType = AgentToAiType[Engine];  // "chatgpt"
-  const alias: AiAliasType = AiAlias[aiType];        // "cgp"
-  const ResponseImage = `${alias}${OID}.png`;       // "cgp123.png"
+  const aiType: AiType = AgentToAiType[Engine]; // "chatgpt"
+  const alias: AiAliasType = AiAlias[aiType]; // "cgp"
+  const ResponseImage = `${alias}${OID}.png`; // "cgp123.png"
 
   const savePayload = async () => {
     const responseText = output?.markdownSingleLine || "";
@@ -246,8 +253,6 @@ const Chatgpt = ({
       id && OID && Query && responseText && responseHTML && timestamp;
     const responseCode = isComplete ? "Success" : "";
 
-
-
     const payload = {
       ChatID: id,
       OID,
@@ -257,7 +262,7 @@ const Chatgpt = ({
       Sources: sources,
       TimeStamp: timestamp,
       ResponseImage,
-      ResponseCode: responseCode
+      ResponseCode: responseCode,
     };
 
     try {
@@ -283,8 +288,6 @@ const Chatgpt = ({
     }
   };
 
-
-
   return (
     <div className="query-details-container">
       <Breadcrumbs
@@ -304,6 +307,15 @@ const Chatgpt = ({
             <CopyButton value={OID} />
           </div>
         </div>
+
+        <div>
+          <p className="field-text">Engine:</p>
+          <div className="value-container">
+            <span>{Engine}</span>
+            <CopyButton value={Engine} />
+          </div>
+        </div>
+        <search></search>
 
         <div>
           <p className="field-text">Query:</p>
@@ -346,7 +358,9 @@ const Chatgpt = ({
       </div>
 
       <div style={{ marginBottom: "1rem" }}>
-        <Button onClick={() => handleScreenshot(ResponseImage)}>Screenshot</Button>
+        <Button onClick={() => handleScreenshot(ResponseImage)}>
+          Screenshot
+        </Button>
       </div>
 
       <div className="tab-buttons">
