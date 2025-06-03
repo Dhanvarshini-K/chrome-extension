@@ -3,7 +3,7 @@
   "name": "NUI Chat gpt extension",
   "version": "1.7",
   "description": "A Chrome extension that integrates with ChatGPT to provide AI-powered assistance.",
-  "permissions": ["storage", "scripting", "activeTab", "sidePanel"],
+  "permissions": ["storage","scripting", "activeTab", "sidePanel", "tabs"],
   "action": {
     "default_icon": {
       "16": "icon.png",
@@ -23,7 +23,7 @@
   ],
   "web_accessible_resources": [
     {
-      "resources": ["inject.js"],
+      "resources": ["inject.js", "readLocalStorage.js", "clickSources.js"],
       "matches": ["<all_urls>"]
     }
   ],

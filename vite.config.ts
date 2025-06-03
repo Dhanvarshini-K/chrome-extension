@@ -10,7 +10,10 @@ export default defineConfig({
         popup: resolve(__dirname, "popup.html"),
         background: resolve(__dirname, "src/background.ts"),
         content: resolve(__dirname, "src/content.ts"),
-        inject: resolve(__dirname, "src/inject.ts")
+        inject: resolve(__dirname, "src/inject.ts"),
+        readLocalStorage: resolve(__dirname, "src/readLocalStorage.ts"),
+        clickSources: resolve(__dirname, "src/clickSources.ts")
+
       },
       output: {
         entryFileNames: (assetInfo) => {
