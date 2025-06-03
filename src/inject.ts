@@ -46,6 +46,7 @@
     return null;
   };
 
+
   interface Citation {
     title: string;
     url: string;
@@ -58,9 +59,12 @@
   );
 
   const run = async () => {
+   localStorage.removeItem(`citations`);
+
     for (const element of elements) {
       (window as any)._capturedURL = "";
       element.click();
+      // element.addEventListener('click', (e) => e.preventDefault());
       await delay(300);
 
       const title = element.innerText.trim();
@@ -73,12 +77,17 @@
 
     console.log("sources", sources);
 
-    localStorage.setItem("citations", "");
 
-    localStorage.setItem("citations", JSON.stringify(sources));
+    localStorage.setItem(`citations`, JSON.stringify(sources));
 
-    // window.postMessage({ type: "CITATIONS_FOUND", citations: sources }, "*");
+    window.postMessage(
+      {
+        type: "CITATIONS_FOUND",
+        citations: sources,
+      },
+      "*"
+    );
   };
-
   run();
+  
 })();
