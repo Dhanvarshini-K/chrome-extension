@@ -82,6 +82,7 @@ const QueryList: React.FC<QueryListProps> = ({
 
       const rows = data.map((item: any) => {
         const {
+          TaskID,
           OID,
           Agent,
           ResponseCode,
@@ -98,6 +99,7 @@ const QueryList: React.FC<QueryListProps> = ({
         } = item;
 
         return [
+          TaskID,
           OID,
           ChatID || "",
           TurnID,

@@ -22,6 +22,7 @@ export type QueryFormData = {
 };
 
 export const HEADERS = [
+  "TaskID",
   "OID",
   "ChatID",
   "TurnID",
