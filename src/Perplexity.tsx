@@ -142,8 +142,8 @@ function Perplexity({
       const lastSegment = parsedUrl.pathname.split("/").pop() || "";
       const parts = lastSegment.split("-");
       const possibleId = parts[parts.length - 1];
+      return possibleId ? possibleId : null;
 
-      return /^[a-zA-Z0-9_-]{8,}$/.test(possibleId) ? possibleId : null;
     } catch (e) {
       return null;
     }
@@ -317,7 +317,7 @@ function Perplexity({
     const responseHTML = html || "";
     const sources =
       citationsData.includes("No content found") &&
-      !citationsData.startsWith("[")
+        !citationsData.startsWith("[")
         ? ""
         : citationsData;
     const timestamp = formattedDate;
@@ -436,7 +436,7 @@ function Perplexity({
           <Button onClick={removeDiv}>Remove Related Divs</Button>
         </div>
 
-        <div style={{ marginBottom: "1rem" , width: "45%"}}>
+        <div style={{ marginBottom: "1rem", width: "45%" }}>
           <Button onClick={() => handleScreenshot(ResponseImage)}>
             Screenshot
           </Button>
@@ -449,9 +449,8 @@ function Perplexity({
             {tabs.map((tab) => (
               <Button
                 key={tab}
-                className={`tab-button ${
-                  extractedTabs[tab] ? "extracted" : ""
-                }`}
+                className={`tab-button ${extractedTabs[tab] ? "extracted" : ""
+                  }`}
                 onClick={() => handleTabClick(tab)}
               >
                 {tab.charAt(0).toUpperCase() + tab.slice(1)}
