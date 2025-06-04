@@ -25,6 +25,7 @@ export const HEADERS = [
   "TaskID",
   "OID",
   "ChatID",
+  "QueryID",
   "TurnID",
   "Engine",
   "Query",

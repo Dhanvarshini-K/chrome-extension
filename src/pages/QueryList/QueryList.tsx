@@ -84,6 +84,7 @@ const QueryList: React.FC<QueryListProps> = ({
         const {
           TaskID,
           OID,
+          QueryID,
           Agent,
           ResponseCode,
           Engine,
@@ -102,6 +103,7 @@ const QueryList: React.FC<QueryListProps> = ({
           TaskID,
           OID,
           ChatID || "",
+          QueryID,
           TurnID,
           Engine,
           Query,

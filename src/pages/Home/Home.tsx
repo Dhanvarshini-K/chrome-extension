@@ -53,59 +53,60 @@ const Home = ({ goQueryList, refreshQueryData }: HomeProps) => {
     }
   };
 
-const handleSubmit = () => {
-  if (!file) {
-    setError("Please select a TSV file before submitting.");
-    return;
-  }
-
-  const reader = new FileReader();
-  reader.onload = async () => {
-    const text = reader.result as string;
-    const lines = text
-      .trim()
-      .split("\n")
-      .filter((line) => line.trim() !== "");
-
-    const headers = lines[0].split("\t").map(h => h.trim().toLowerCase());
-    const oidIndex = headers.findIndex(h => h === "oid");
-    const queryIndex = headers.findIndex(h => h.includes("query"));
-
-    if (oidIndex === -1 || queryIndex === -1) {
-      setError("Required columns 'OID' and 'Query' not found in the file.");
+  const handleSubmit = () => {
+    if (!file) {
+      setError("Please select a TSV file before submitting.");
       return;
     }
 
-    const dataObjects = lines.slice(1).map((line) => {
-      const columns = line.split("\t").map(col => col.trim());
-      return {
-        TaskID: taskId,
-        OID: columns[oidIndex],
-        Query: columns[queryIndex],
-        Agent: agent,
-        Engine: engine,
-        TurnID: "1",
-        PerfData: "{}",
-      };
-    });
+    const reader = new FileReader();
+    reader.onload = async () => {
+      const text = reader.result as string;
+      const lines = text
+        .trim()
+        .split("\n")
+        .filter((line) => line.trim() !== "");
 
-    setCSVData(dataObjects);
-    await createTableAndSaveData(dataObjects);
+      const headers = lines[0].split("\t").map(h => h.trim().toLowerCase());
+      const oidIndex = headers.findIndex(h => h === "oid");
+      const queryIndex = headers.findIndex(h => h.includes("query"));
 
-    await refreshQueryData();
-    localStorage.setItem("agent", agent);
-    localStorage.setItem("taskId", taskId);
-    localStorage.setItem("engine", engine);
-    localStorage.setItem("submitted", "true");
+      if (oidIndex === -1 || queryIndex === -1) {
+        setError("Required columns 'OID' and 'Query' not found in the file.");
+        return;
+      }
 
-    localStorage.setItem("fileName", file.name);
-    localStorage.setItem("fileType", file.type);
+      const dataObjects = lines.slice(1).map((line) => {
+        const columns = line.split("\t").map(col => col.trim());
+        return {
+          TaskID: taskId,
+          OID: columns[oidIndex],
+          Query: columns[queryIndex],
+          QueryID: columns[oidIndex],
+          Agent: agent,
+          Engine: engine,
+          TurnID: "1",
+          PerfData: "{}",
+        };
+      });
 
-    setSubmitted(true);
+      setCSVData(dataObjects);
+      await createTableAndSaveData(dataObjects);
+
+      await refreshQueryData();
+      localStorage.setItem("agent", agent);
+      localStorage.setItem("taskId", taskId);
+      localStorage.setItem("engine", engine);
+      localStorage.setItem("submitted", "true");
+
+      localStorage.setItem("fileName", file.name);
+      localStorage.setItem("fileType", file.type);
+
+      setSubmitted(true);
+    };
+
+    reader.readAsText(file);
   };
-
-  reader.readAsText(file);
-};
 
   return (
     <div className="home-container">
