@@ -34,11 +34,11 @@
 }
 
 
-/* .save-extract-buttons-container { */
-    /* display: flex; */
-    /* gap: 8px; */
-/* } */
-
+.loader {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 
 .tab-buttons {
   display: flex;

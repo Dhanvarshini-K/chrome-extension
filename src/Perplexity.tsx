@@ -16,6 +16,7 @@ import {
 import { handleScreenshot } from "./utils/screenshotUtils";
 import { saveOrUpdate } from "./utils";
 import "./Perplexity.css";
+import { FaSpinner } from "react-icons/fa";
 
 type ExtractedData = {
   html: string;
@@ -43,6 +44,7 @@ function Perplexity({
   const [id, setId] = useState<string>("");
   const [html, setHtml] = useState("");
   const [markdown, setMarkdown] = useState("");
+  const [isCitationsLoading, setIsCitationsLoading] = useState(false);
 
   const [citationsData, setCitationsData] = useState("");
   const [extractedTabs, setExtractedTabs] = useState<
@@ -243,6 +245,7 @@ function Perplexity({
 
   const handleTabClick = async (tabName: ResponseTabsType) => {
     if (tabName === ResponseTabs.CITATIONS) {
+      setIsCitationsLoading(true);
       await injectScript();
 
       const [tab] = await chrome.tabs.query({
@@ -284,6 +287,7 @@ function Perplexity({
               .join("##NEWLINE##");
 
             setCitationsData(markdown || "");
+            setIsCitationsLoading(false);
           });
 
         }, 1000);
@@ -471,10 +475,20 @@ function Perplexity({
                 <pre className="pre-block">{markdown}</pre>
               </div>
             )}
-            {activeTab === ResponseTabs.CITATIONS && citationsData && (
+            {activeTab === ResponseTabs.CITATIONS && (
               <div>
-                <CopyButton value={citationsData} />
-                <pre className="pre-block">{citationsData}</pre>
+                {isCitationsLoading ? (
+                  <div className="loader">
+                  <FaSpinner className="spinner" />
+                  </div>
+                ) : (
+                  citationsData && (
+                    <>
+                      <CopyButton value={citationsData} />
+                      <pre className="pre-block">{citationsData}</pre>
+                    </>
+                  )
+                )}
               </div>
             )}
           </div>
