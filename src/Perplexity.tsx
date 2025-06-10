@@ -201,18 +201,6 @@ function Perplexity({
     chrome.scripting.executeScript({
       target: { tabId: tab.id! },
       func: () => {
-        const divs = document.querySelectorAll(".gap-y-md > div");
-
-        const hasImage = document.querySelector("button .rounded-inherit");
-        let divToDelete = 2;
-        if (hasImage) {
-          divToDelete = 3;
-        }
-        console.log("Divs:", divs);
-        const footer = divs?.[divToDelete];
-        if (footer) {
-          footer.remove();
-        }
         const targetDivs = [
           ".animate-in.fade-in.duration-100.ease-out.border-borderMain\\/50.ring-borderMain\\/50.divide-borderMain\\/50.dark\\:divide-borderMainDark\\/50.dark\\:ring-borderMainDark\\/50.dark\\:border-borderMainDark\\/50.bg-transparent",
           ".table .relative.flex",
@@ -227,6 +215,27 @@ function Perplexity({
           const divs = document.querySelector(selector);
           if (divs) {
             divs.remove();
+          }
+        });
+
+        const ariaLabelsToRemove = [
+          "Not helpful",
+          "Helpful",
+          "Copy",
+          "Pro Search",
+        ];
+        ariaLabelsToRemove.forEach((label) => {
+          const btn = document.querySelector(`button[aria-label="${label}"]`);
+          if (btn) {
+            btn.remove();
+          }
+        });
+
+        // Remove <div> that contains <svg class="tabler-icon tabler-icon-dots">
+        document.querySelectorAll('svg.tabler-icon.tabler-icon-dots').forEach((svg) => {
+          const parentDiv = svg.closest('div');
+          if (parentDiv) {
+            parentDiv.remove();
           }
         });
 
@@ -479,7 +488,7 @@ function Perplexity({
               <div>
                 {isCitationsLoading ? (
                   <div className="loader">
-                  <FaSpinner className="spinner" />
+                    <FaSpinner className="spinner" />
                   </div>
                 ) : (
                   citationsData && (
