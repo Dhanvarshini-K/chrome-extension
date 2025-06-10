@@ -399,7 +399,7 @@ function Perplexity({
         <div className="field-container">
           <span className="field-text">Query:</span>
           <div className="value-container">
-            <span>{Query}</span>
+            <span className="query-field">{Query}</span>
             <CopyButton value={Query} />
           </div>
         </div>

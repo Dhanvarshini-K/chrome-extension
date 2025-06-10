@@ -1,38 +1,36 @@
 .query-details-container {
-    padding: 15px;
-    width: 370px;
+  padding: 15px;
+  width: 370px;
 }
 
 .query-details-title {
-    font-size: "1.5rem";
-    margin-bottom: "1rem";
-    text-align: "center";
-    font-weight: bold;
+  font-size: "1.5rem";
+  margin-bottom: "1rem";
+  text-align: "center";
+  font-weight: bold;
 }
 
 .field-text {
-    font-weight: bold;
+  font-weight: bold;
 }
 
 .value-container {
-    display: flex;
-    justify-content: space-between;
+  display: flex;
+  justify-content: space-between;
 }
 
 .field-value-container {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 
-    border: 1px solid #ccc;
-    border-radius: 8px;
-    padding: 1rem;
-    margin-bottom: 1rem;
-    background: #f9f9f9;
-    margin-top: 20px;
-
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  background: #f9f9f9;
+  margin-top: 20px;
 }
-
 
 .loader {
   display: flex;
@@ -56,7 +54,6 @@
   color: white;
 }
 
-
 .tab-content {
   margin-bottom: 1rem;
 }
@@ -67,12 +64,22 @@
   padding: 0.5rem;
   border-radius: 4px;
   font-family: monospace;
+
+  word-break: break-word;
+  overflow-wrap: break-word;
+  max-width: 100%;
+  overflow-x: auto;
 }
-
-
 
 .field-container {
   display: flex;
   flex-direction: column;
-  gap:4px;
+  gap: 4px;
+}
+
+.query-field {
+  word-break: break-word;
+  overflow-wrap: break-word;
+  max-width: 100%;
+  overflow-x: auto;
 }

@@ -67,21 +67,28 @@ const Home = ({ goQueryList, refreshQueryData }: HomeProps) => {
         .split("\n")
         .filter((line) => line.trim() !== "");
 
-      const headers = lines[0].split("\t").map(h => h.trim().toLowerCase());
-      const oidIndex = headers.findIndex(h => h === "oid");
-      const queryIndex = headers.findIndex(h => h.includes("query"));
+      const headers = lines[0].split("\t").map((h) => h.trim().toLowerCase());
+      const oidIndex = headers.findIndex((h) => h === "oid");
+      const queryIndex = headers.findIndex((h) => h.includes("query"));
 
       if (oidIndex === -1 || queryIndex === -1) {
         setError("Required columns 'OID' and 'Query' not found in the file.");
         return;
       }
 
+      const cleanQuery = (raw: string) => {
+        if (raw.startsWith('"') && raw.endsWith('"')) {
+          raw = raw.slice(1, -1);
+        }
+        return raw.replace(/""/g, '"');
+      };
+
       const dataObjects = lines.slice(1).map((line) => {
-        const columns = line.split("\t").map(col => col.trim());
+        const columns = line.split("\t").map((col) => col.trim());
         return {
           TaskID: taskId,
           OID: columns[oidIndex],
-          Query: columns[queryIndex],
+          Query: cleanQuery(columns[queryIndex]),
           QueryID: columns[oidIndex],
           Agent: agent,
           Engine: engine,
@@ -115,9 +122,17 @@ const Home = ({ goQueryList, refreshQueryData }: HomeProps) => {
       <form className="form-container">
         {submitted ? (
           <div className="field-group">
-            <div className="label-value-container"><p className="label">Agent:</p> {agent}</div>
-            <div className="label-value-container"><p className="label">Task ID: </p>{taskId}</div>
-            <div className="label-value-container"><p className="label">Engine: </p>{engine}</div>
+            <div className="label-value-container">
+              <p className="label">Agent:</p> {agent}
+            </div>
+            <div className="label-value-container">
+              <p className="label">Task ID: </p>
+              {taskId}
+            </div>
+            <div className="label-value-container">
+              <p className="label">Engine: </p>
+              {engine}
+            </div>
 
             <Button
               buttonText="View Query List"
@@ -181,7 +196,12 @@ const Home = ({ goQueryList, refreshQueryData }: HomeProps) => {
         )}
 
         {error && <div className="error-message">{error}</div>}
-        {file && <div className="file-name"><p className="label">Uploaded File: </p>{`${file.name}`}</div>}
+        {file && (
+          <div className="file-name">
+            <p className="label">Uploaded File: </p>
+            {`${file.name}`}
+          </div>
+        )}
       </form>
     </div>
   );
