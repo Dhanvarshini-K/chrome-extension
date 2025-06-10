@@ -89,7 +89,6 @@ function Perplexity({
           document.documentElement.appendChild(script);
         },
       });
-
     }
   };
 
@@ -145,7 +144,6 @@ function Perplexity({
       const parts = lastSegment.split("-");
       const possibleId = parts[parts.length - 1];
       return possibleId ? possibleId : null;
-
     } catch (e) {
       return null;
     }
@@ -232,12 +230,14 @@ function Perplexity({
         });
 
         // Remove <div> that contains <svg class="tabler-icon tabler-icon-dots">
-        document.querySelectorAll('svg.tabler-icon.tabler-icon-dots').forEach((svg) => {
-          const parentDiv = svg.closest('div');
-          if (parentDiv) {
-            parentDiv.remove();
-          }
-        });
+        document
+          .querySelectorAll("svg.tabler-icon.tabler-icon-dots")
+          .forEach((svg) => {
+            const parentDiv = svg.closest("div");
+            if (parentDiv) {
+              parentDiv.remove();
+            }
+          });
 
         document.querySelectorAll("*").forEach((el: any) => {
           el.style.color = "#555";
@@ -249,8 +249,6 @@ function Perplexity({
       },
     });
   };
-
-
 
   const handleTabClick = async (tabName: ResponseTabsType) => {
     if (tabName === ResponseTabs.CITATIONS) {
@@ -275,11 +273,11 @@ function Perplexity({
                   .map((page: any) => `[${page.title}](${page.url})`)
                   .join("##NEWLINE##");
 
-                console.log('markdown', markdown);
+                console.log("markdown", markdown);
                 chrome.runtime.sendMessage({
                   type: "SAVE_CITATIONS",
                   citations: event.data.citations,
-                  OID: event.data.OID
+                  OID: event.data.OID,
                 });
               }
             });
@@ -298,15 +296,12 @@ function Perplexity({
             setCitationsData(markdown || "");
             setIsCitationsLoading(false);
           });
-
         }, 1000);
       }
-
     }
 
     setActiveTab(tabName);
   };
-
 
   const formattedDate = new Date()
     .toLocaleString("en-US", {
@@ -330,7 +325,7 @@ function Perplexity({
     const responseHTML = html || "";
     const sources =
       citationsData.includes("No content found") &&
-        !citationsData.startsWith("[")
+      !citationsData.startsWith("[")
         ? ""
         : citationsData;
     const timestamp = formattedDate;
@@ -376,6 +371,25 @@ function Perplexity({
 
   const startExtract = async () => {
     await triggerExtract();
+  };
+
+  const setViewportWidth = async () => {
+    const [tab] = await chrome.tabs.query({
+      active: true,
+      currentWindow: true,
+    });
+    if (tab?.id) {
+      await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        func: () => {
+          document.documentElement.style.width = "800px";
+          document.documentElement.style.maxWidth = "800px";
+          document.body.style.width = "800px";
+          document.body.style.maxWidth = "800px";
+          document.documentElement.style.overflowX = "auto";
+        },
+      });
+    }
   };
 
   return (
@@ -455,6 +469,9 @@ function Perplexity({
           </Button>
         </div>
       </div>
+      <div style={{ marginBottom: "1rem" }}>
+        <Button onClick={setViewportWidth}>Set ViewPort Width</Button>
+      </div>
 
       {html && markdown ? (
         <>
@@ -462,8 +479,9 @@ function Perplexity({
             {tabs.map((tab) => (
               <Button
                 key={tab}
-                className={`tab-button ${extractedTabs[tab] ? "extracted" : ""
-                  }`}
+                className={`tab-button ${
+                  extractedTabs[tab] ? "extracted" : ""
+                }`}
                 onClick={() => handleTabClick(tab)}
               >
                 {tab.charAt(0).toUpperCase() + tab.slice(1)}
@@ -505,10 +523,7 @@ function Perplexity({
           <div className="save-extract-buttons-container">
             <Button
               onClick={handleSave}
-              disabled={
-                !extractedTabs.html ||
-                !extractedTabs.markdown
-              }
+              disabled={!extractedTabs.html || !extractedTabs.markdown}
             >
               Save
             </Button>
