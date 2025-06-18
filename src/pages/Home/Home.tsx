@@ -166,6 +166,7 @@ const Home = ({ goQueryList, refreshQueryData }: HomeProps) => {
               >
                 <option value={AIEngine.ChatGPT}>ChatGPT</option>
                 <option value={AIEngine.Perplexity}>Perplexity</option>
+                <option value={AIEngine.Copilot}>Copilot</option>
               </select>
             </div>
 
