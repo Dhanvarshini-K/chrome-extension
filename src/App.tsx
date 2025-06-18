@@ -7,10 +7,11 @@ import Perplexity from "./Perplexity";
 import { getAllFromIndexedDB } from "./utils";
 import Chatgpt from "./ChatGpt";
 import type { QueryFormData, QueryItem } from "./types";
+import Copilot from "./Copilot";
 
 
 function App() {
-  const [page, setPage] = useState<"home" | "queryList" | "chatgpt" | "perplexity">("home");
+  const [page, setPage] = useState<"home" | "queryList" | "chatgpt" | "perplexity" | "copilot">("home");
   const [selectedQuery, setSelectedQuery] = useState<QueryFormData | null>(null);
   const [queryData, setQueryData] = useState<QueryItem[]>([]);
 
@@ -39,14 +40,13 @@ function App() {
 
     if (storedEngine === "PplxPro") {
       setPage("perplexity");
-    } else {
+    } else if (storedEngine === "ChatGptPro") {
       setPage("chatgpt");
     }
+    else {
+      setPage("copilot")
+    }
   };
-
-  useEffect(() => {
-    console.log("selectedQuery",selectedQuery)
-  })
 
   const renderAppContent = () => {
 
@@ -60,6 +60,8 @@ function App() {
         return <Chatgpt queryData={selectedQuery} goHome={goHome} goQueryList={goQueryList} refreshQueryData={refreshQueryData} />;
       case "perplexity":
         return <Perplexity goHome={goHome} goQueryList={goQueryList} refreshQueryData={refreshQueryData} queryData={selectedQuery} />
+      case "copilot":
+        return <Copilot goHome={goHome} goQueryList ={goQueryList} refreshQueryData={refreshQueryData} queryData={selectedQuery}/>
       default:
         return <Home goQueryList={goQueryList} refreshQueryData={refreshQueryData} />;
     }
