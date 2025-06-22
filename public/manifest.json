@@ -1,16 +1,9 @@
 {
   "manifest_version": 3,
   "name": "NUI Extractor",
-  "version": "1.7",
-  "description": "A Chrome extension that integrates with ChatGPT to provide AI-powered assistance.",
+  "version": "5.1",
+  "description": "A Chrome extension that integrates with ChatGPT to provide AI-powered assistance and added screenshot feature",
   "permissions": ["storage","scripting", "activeTab", "sidePanel", "tabs"],
-  "action": {
-    "default_icon": {
-      "16": "icon.png",
-      "48": "icon.png",
-      "128": "icon.png"
-    }
-  },
   "background": {
     "service_worker": "background.js"
   },
@@ -28,13 +21,8 @@
     }
   ],
   "host_permissions": ["<all_urls>"],
-
-  "icons": {
-    "16": "icon.png",
-    "48": "icon.png",
-    "128": "icon.png"
-  },
   "side_panel": {
-    "default_path": "sidePanel.html"
+    "default_path": "sidePanel.html",
+    "default_icon" : "numenticaUIHeaderLogo.svg"
   }
 }

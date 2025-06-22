@@ -169,12 +169,12 @@ for (let i = 0; i < loadedImgs.length; i++) {
   );
 
   // // 🏷️ Label for visual debugging
-  const label = `Part ${i + 1}: ${startY.toFixed(2)} → ${endY.toFixed(2)} (${(endY - startY).toFixed(2)}px)`;
-  console.log('label',label)
-  ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
-  ctx.fillRect(0, offsetY, ctx.measureText(label).width + 10, 20);
-  ctx.fillStyle = "white";
-  ctx.fillText(label, 5, offsetY + 2);
+  // const label = `Part ${i + 1}: ${startY.toFixed(2)} → ${endY.toFixed(2)} (${(endY - startY).toFixed(2)}px)`;
+  // console.log('label',label)
+  // ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
+  // ctx.fillRect(0, offsetY, ctx.measureText(label).width + 10, 20);
+  // ctx.fillStyle = "white";
+  // ctx.fillText(label, 5, offsetY + 2);
 
   offsetY += cropHeight;
 }
