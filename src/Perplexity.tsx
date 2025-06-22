@@ -242,6 +242,41 @@ function Perplexity({
         document.querySelectorAll("*").forEach((el: any) => {
           el.style.color = "#555";
         });
+        //Change the bg color as white
+        // const container = document.querySelector(".\\@container\\/main") as HTMLDivElement
+        // if(container) {
+        //   container.style.backgroundColor = "#fff";
+        // }
+
+        //working but adding white space in the screenshot
+        // document
+        //   .querySelectorAll<HTMLDivElement>('body div[class*="bg-"]')
+        //   .forEach((el) => {
+        //     el.className = el.className
+        //       .split(" ")
+        //       .filter((cls) => !cls.startsWith("bg-") && !cls.includes(":bg-"))
+        //       .join(" ");
+        //     el.style.backgroundColor = "#fff";
+        //   });
+
+        //bg testing
+        document
+          .querySelectorAll<HTMLDivElement>('body div[class*="bg-"]')
+          .forEach((el) => {
+            const bg = getComputedStyle(el).backgroundColor;
+            const isTransparent =
+              bg === "rgba(0, 0, 0, 0)" || bg === "transparent";
+
+            el.className = el.className
+              .split(" ")
+              .filter((cls) => !cls.startsWith("bg-") && !cls.includes(":bg-"))
+              .join(" ");
+
+            if (!isTransparent) {
+              el.style.backgroundColor = "#fff";
+            }
+          });
+
         [
           ...document.querySelectorAll("div.-mx-sm.gap-xs.relative.flex"),
           ...document.querySelectorAll("div.gap-sm.grid.grid-cols-4.md\\:px-0"),
