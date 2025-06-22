@@ -34,4 +34,3 @@ export const AgentToAiType: Record<string, AiType> = {
   [AIEngine.Perplexity]: "perplexity",
   [AIEngine.Copilot]: "copilot"
 };
-

@@ -1,4 +1,4 @@
-.query-details-container {
+/* .query-details-container {
   padding: 15px;
   width: 370px;
 }
@@ -68,4 +68,90 @@
   color: #555;
   font-weight: bold;
   pointer-events: none;
+} */
+
+
+.query-details-container {
+  padding: 15px;
+  width: 370px;
+}
+
+.query-details-title {
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
+  text-align: center;
+  font-weight: bold;
+}
+
+.field-text {
+  font-weight: bold;
+}
+
+.value-container {
+  display: flex;
+  justify-content: space-between;
+}
+
+.field-value-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  padding: 10px;
+  margin-bottom: 1rem;
+  background: #f9f9f9;
+}
+
+.tab-buttons {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 1rem;
+}
+
+.tab-button {
+  background-color: #ecf0f1;
+  color: #333;
+}
+
+.tab-button.extracted {
+  background-color: #28a745;
+  color: white;
+}
+
+.tab-content {
+  margin-bottom: 1rem;
+}
+
+.pre-block {
+  white-space: pre-wrap;
+  /* background: #f0f0f0; */
+  padding: 0.5rem;
+  border-radius: 4px;
+  font-family: monospace;
+
+  word-break: break-word;
+  overflow-wrap: break-word;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.breadcrumb-current {
+  color: #555;
+  font-weight: bold;
+  pointer-events: none;
+}
+
+.field-value-container > div {
+  margin-bottom: 8px; /* reduce spacing between each field group */
+}
+
+.field-text {
+  margin-bottom: 2px !important; /* reduce space below the title */
+  line-height: 1.2; /* tighter vertical spacing */
+}
+
+.value-container {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
 }
