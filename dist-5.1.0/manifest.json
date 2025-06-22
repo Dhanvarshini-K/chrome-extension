@@ -1,0 +1,28 @@
+{
+  "manifest_version": 3,
+  "name": "NUI Extractor",
+  "version": "5.1",
+  "description": "A Chrome extension that integrates with ChatGPT, Perplexity and Copilot to provide AI-powered assistance.Included the screenshot functionality",
+  "permissions": ["storage","scripting", "activeTab", "sidePanel", "tabs"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["inject.js", "readLocalStorage.js", "clickSources.js"],
+      "matches": ["<all_urls>"]
+    }
+  ],
+  "host_permissions": ["<all_urls>"],
+  "side_panel": {
+    "default_path": "sidePanel.html",
+    "default_icon" : "numenticaUIHeaderLogo.svg"
+  }
+}
