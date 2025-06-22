@@ -28,8 +28,19 @@ const QueryList: React.FC<QueryListProps> = ({
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   const [searchTerm, setSearchTerm] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+
+  const [currentPage, setCurrentPage] = useState(1);
+  useEffect(() => {
+    chrome.storage.local.get(["queryListCurrentPage"], (result) => {
+      if (result.queryListCurrentPage) {
+        setCurrentPage(result.queryListCurrentPage);
+      }
+    });
+  }, []);
+  useEffect(() => {
+    chrome.storage.local.set({ queryListCurrentPage: currentPage });
+  }, [currentPage]);
 
   const fuse = useMemo(() => {
     return new Fuse(data, {
