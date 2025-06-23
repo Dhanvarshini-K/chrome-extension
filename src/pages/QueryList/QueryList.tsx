@@ -7,6 +7,7 @@ import { HEADERS, type QueryItem } from "../../types";
 import { useState } from "react";
 import { DB_NAME } from "../../utils";
 import Fuse from "fuse.js";
+import {version} from "../../../package.json"
 
 interface QueryListProps {
   data: QueryItem[];
@@ -205,11 +206,6 @@ const QueryList: React.FC<QueryListProps> = ({
     setShowModal(false);
   }
 
-  // function goQueryDetails(index: number) {
-  //   console.log("index",index);
-  //   console.log("data index",data[index])
-  //   return goChat(data[index]);
-  // }
 
   function goQueryDetails(item: QueryItem) {
     return goChat({
@@ -218,6 +214,7 @@ const QueryList: React.FC<QueryListProps> = ({
       Engine: item.Engine,
     });
   }
+
 
   return (
     <div className="query-list-container">
@@ -264,6 +261,7 @@ const QueryList: React.FC<QueryListProps> = ({
             {`Status : ${status}`}
           </div>
         </div>
+        <p><span style={{fontWeight:"bold"}}>Version:</span> {version}</p>
         <div className="search-bar">
           <input
             type="text"
