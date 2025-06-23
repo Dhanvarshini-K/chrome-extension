@@ -58,20 +58,67 @@ function Perplexity({
   const { OID = "", Query = "", Engine = "" } = queryData || {};
 
   useEffect(() => {
-    if (OID) {
+    if (OID && queryData?.Query) {
       chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
         if (tab?.id) {
+          const query = queryData.Query;
           chrome.scripting.executeScript({
             target: { tabId: tab.id },
-            func: (OID) => {
-              localStorage.setItem("OID", OID);
+            func: (query: string) => {
+              const delay = (ms: number) =>
+                new Promise((res) => setTimeout(res, ms));
+
+              const simulateUserFlow = async () => {
+                // 1. Click New Chat
+                const newChatBtn = document.querySelector(
+                  'button[class*="bg-offsetPlus"][class*="dark:bg-offsetPlusDark"]'
+                ) as HTMLElement;
+                if (newChatBtn) {
+                  newChatBtn.click();
+                  await delay(1000); // wait for input to appear
+                }
+
+                // 2. Set the query
+                const inputDiv = document.querySelector(
+                  '#ask-input[contenteditable="true"]'
+                ) as HTMLElement | null;
+                if (inputDiv) {
+                  inputDiv.focus();
+
+                  const event = new InputEvent("input", {
+                    bubbles: true,
+                    cancelable: true,
+                    inputType: "insertText",
+                    data: query,
+                  });
+
+                  const p = inputDiv.querySelector("p");
+                  if (p) {
+                    p.innerHTML = `<span>${query}</span>`;
+                    inputDiv.dispatchEvent(event);
+                  }
+
+                  await delay(500);
+                }
+
+                // 3. Click the Submit button
+                const submitBtn = document.querySelector(
+                  'button[data-testid="submit-button"]'
+                ) as HTMLButtonElement;
+
+                if (submitBtn && !submitBtn.disabled) {
+                  submitBtn.click();
+                }
+              };
+
+              simulateUserFlow();
             },
-            args: [OID],
+            args: [query],
           });
         }
       });
     }
-  }, [OID]);
+  }, [OID, queryData?.Query]);
 
   const injectScript = async () => {
     const [tab] = await chrome.tabs.query({
@@ -230,10 +277,8 @@ function Perplexity({
         });
 
         // Remove <div> that contains <svg class="tabler-icon tabler-icon-dots">
-        document
-          .querySelectorAll("svg.tabler-icon.tabler-icon-dots")
-          .forEach((svg) => {
-            const parentDiv = svg.closest("div");
+        document.querySelectorAll('svg.tabler-icon.tabler-icon-dots').forEach((svg) => {
+          const parentDiv = svg.closest('div');
             if (parentDiv) {
               parentDiv.remove();
             }
@@ -242,22 +287,6 @@ function Perplexity({
         document.querySelectorAll("*").forEach((el: any) => {
           el.style.color = "#555";
         });
-        //Change the bg color as white
-        // const container = document.querySelector(".\\@container\\/main") as HTMLDivElement
-        // if(container) {
-        //   container.style.backgroundColor = "#fff";
-        // }
-
-        //working but adding white space in the screenshot
-        // document
-        //   .querySelectorAll<HTMLDivElement>('body div[class*="bg-"]')
-        //   .forEach((el) => {
-        //     el.className = el.className
-        //       .split(" ")
-        //       .filter((cls) => !cls.startsWith("bg-") && !cls.includes(":bg-"))
-        //       .join(" ");
-        //     el.style.backgroundColor = "#fff";
-        //   });
 
         //bg testing
         document
@@ -276,6 +305,13 @@ function Perplexity({
               el.style.backgroundColor = "#fff";
             }
           });
+        
+        //Removed dots
+
+        const dotsIcon = document.querySelector(
+          ".tabler-icon.tabler-icon-dots"
+        ) as HTMLElement | null;
+        dotsIcon?.remove();
 
         [
           ...document.querySelectorAll("div.-mx-sm.gap-xs.relative.flex"),
@@ -514,8 +550,7 @@ function Perplexity({
             {tabs.map((tab) => (
               <Button
                 key={tab}
-                className={`tab-button ${
-                  extractedTabs[tab] ? "extracted" : ""
+                className={`tab-button ${extractedTabs[tab] ? "extracted" : ""
                 }`}
                 onClick={() => handleTabClick(tab)}
               >
