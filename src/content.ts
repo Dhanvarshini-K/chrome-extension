@@ -1,175 +1,85 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 console.log("✅ Content script loaded!");
 
-// window.addEventListener("load", () => {
-//   const el = document.querySelector('[id^="markdown-content"]');
-
-//   if (el) {
-//     const html = el.innerHTML;
-//     const text = el.textContent || "";
-
-//     chrome.runtime.sendMessage({
-//       type: "EXTRACTED_HTML",
-//       html,
-//       text,
-//     });
-//   } else {
-//     console.warn(
-//       "❌ No element with id starting with 'markdown-content' found."
-//     );
-//   }
-// });
-
-// (async () => {
-//   const scrollHeight = 2500;
-//   const viewportHeight = window.innerHeight;
-//   const totalSteps = Math.ceil(scrollHeight / viewportHeight);
-//   const canvas = document.createElement("canvas");
-//   canvas.width = window.innerWidth;
-//   canvas.height = scrollHeight;
-//   const context = canvas.getContext("2d");
-
-//   console.log("Total steps:", totalSteps);
-//   console.log("Viewport height:", scrollHeight);
-
-//   for (let step = 1; step < totalSteps; step++) {
-//     console.log("Capturing step:", step);
-//     window.scrollTo(0, step * viewportHeight);
-//     await new Promise((res) => setTimeout(res, 300)); // wait for scroll render
-
-//     const dataUrl: string = await new Promise((resolve) => {
-//       chrome.runtime.sendMessage({ type: "CAPTURE_VISIBLE" }, (response) => {
-//         resolve(response?.dataUrl);
-//       });
-//     });
-
-//     const img = new Image();
-//     img.src = dataUrl;
-//     await new Promise((res) => {
-//       img.onload = res;
-//     });
-
-//     context?.drawImage(img, 0, step * viewportHeight);
-//   }
-
-//   window.scrollTo(0, 0); // Reset scroll
-
-//   const finalImage = canvas.toDataURL("image/png");
-//   const link = document.createElement("a");
-//   link.href = finalImage;
-//   link.download = "full_page_screenshot.png";
-//   document.body.appendChild(link);
-//   link.click();
-//   document.body.removeChild(link);
-
-//   console.log("Final image data URL:", finalImage);
-
-//   // Send result back to popup or extension
-//   chrome.runtime.sendMessage({
-//     type: "FULL_SCREENSHOT_READY",
-//     dataUrl: finalImage,
-//   });
-// })();
-
-// (async () => {
-//   // 👉 Get the scrollable div
-//   const scrollableDiv = document.querySelector(
-//     "div.erp-sidecar"
-//   ) as HTMLElement;
-
-//   if (!scrollableDiv) {
-//     console.error("Scrollable div not found");
-//     return;
-//   }
-
-//   const scrollHeight = scrollableDiv.scrollHeight;
-//   const viewportHeight = scrollableDiv.clientHeight;
-//   const totalSteps = Math.ceil(scrollHeight / viewportHeight);
-
-//   console.log("Total steps:", totalSteps);
-//   console.log("Viewport height:", viewportHeight);
-//   console.log("Total scroll height:", scrollHeight);
-
-//   const canvas = document.createElement("canvas");
-//   canvas.width = scrollableDiv.clientWidth;
-//   canvas.height = scrollHeight;
-//   const context = canvas.getContext("2d");
-
-//   for (let step = 0; step < totalSteps; step++) {
-//     scrollableDiv.scrollTo({ top: step * viewportHeight, behavior: "instant" });
-
-//     await new Promise((res) => setTimeout(res, 300)); // Wait for render
-
-//     const dataUrl: string = await new Promise((resolve) => {
-//       chrome.runtime.sendMessage({ type: "CAPTURE_VISIBLE" }, (response) => {
-//         resolve(response?.dataUrl);
-//       });
-//     });
-
-//     const img = new Image();
-//     img.src = dataUrl;
-//     await new Promise((res) => {
-//       img.onload = res;
-//     });
-
-//     const yOffset = step * viewportHeight;
-//     context?.drawImage(
-//       img,
-//       scrollableDiv.getBoundingClientRect().left,
-//       scrollableDiv.getBoundingClientRect().top,
-//       scrollableDiv.clientWidth,
-//       viewportHeight,
-//       0,
-//       yOffset,
-//       scrollableDiv.clientWidth,
-//       viewportHeight
-//     );
-//   }
-
-//   scrollableDiv.scrollTo({ top: 0 });
-
-//   const finalImage = canvas.toDataURL("image/png");
-
-//   // Optional: trigger download
-//   const link = document.createElement("a");
-//   link.href = finalImage;
-//   link.download = "scrollable_div_screenshot.png";
-//   document.body.appendChild(link);
-//   link.click();
-//   document.body.removeChild(link);
-
-//   // Send result back to popup or background
-//   chrome.runtime.sendMessage({
-//     type: "FULL_SCREENSHOT_READY",
-//     dataUrl: finalImage,
-//   });
-// })();
-
-// Load html2canvas if needed
-
 (async () => {
-  const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
-  const viewportHeight = window.innerHeight;
-  const totalHeight = Math.max(
-    document.body.scrollHeight,
-    document.documentElement.scrollHeight
-  );
-  const screenshots: string[] = [];
-
-  let scrollY = 0;
-  while (scrollY < totalHeight) {
-    window.scrollTo(0, scrollY);
-    await delay(500); // Allow layout to settle
-
-    const { dataUrl }: { dataUrl: string } = await new Promise((resolve) => {
-      chrome.runtime.sendMessage({ action: "capture" }, resolve);
-    });
-
-    screenshots.push(dataUrl);
-    scrollY += viewportHeight;
+  const container = document.querySelector(".scrollable-container") as HTMLElement;
+  if (!container) {
+    console.error("Container not found");
+    return;
   }
 
-  window.scrollTo(0, 0); // Return to top
+  const screenshots: { dataUrl: string; startY: number; endY: number }[] = [];
+
+  let totalHeight = container.scrollHeight;
+  const viewportHeight = container.clientHeight;
+
+  let currentScrollTop = 0;
+  let iteration = 0;
+  const maxIterations = 100; // just in case
+
+  let stickyTabsRemoved = false;
+
+  container.scrollTop = 0;
+  await new Promise((r) => setTimeout(r, 500));
+
+    // ⏱ Hold reference for restore
+  let stickyClone: Element | null = null;
+  let stickyParent: Node | null = null;
+  let stickyNextSibling: Node | null = null;
+
+  while (iteration++ < maxIterations) {
+    const startY = container.scrollTop;
+
+    const { dataUrl }: { dataUrl: string } = await new Promise((resolve) =>
+      chrome.runtime.sendMessage({ action: "capture" }, resolve)
+    );
+
+    const endY = Math.min(startY + viewportHeight, container.scrollHeight);
+    screenshots.push({ dataUrl, startY, endY });
+    console.log(`✅ Captured: ${startY}px → ${endY}px`);
+
+    // 💥 Remove .sticky-tabs-ref ONLY after first capture
+    if (!stickyTabsRemoved) {
+      const sticky = document.querySelector(".sticky-tabs-ref");
+      if (sticky) {
+        console.warn("❌ Removing .sticky-tabs-ref after first capture");
+        
+        // 🧠 Store info to restore later
+        stickyClone = sticky.cloneNode(true) as HTMLElement;
+        stickyParent = sticky.parentNode;
+        stickyNextSibling = sticky.nextSibling;
+        sticky.remove();
+
+        // Wait for layout to stabilize after removal
+        await new Promise((r) => setTimeout(r, 700));
+        totalHeight = container.scrollHeight; // recalculate
+        stickyTabsRemoved = true;
+      }
+    }
+
+    // 💡 Scroll down
+    const nextScrollTop = Math.min(startY + viewportHeight, totalHeight);
+    if (nextScrollTop === currentScrollTop || endY >= totalHeight) {
+      console.log("✅ Done scrolling. Exiting.");
+      break;
+    }
+
+    container.scrollTop = nextScrollTop;
+    currentScrollTop = nextScrollTop;
+    await new Promise((r) => setTimeout(r, 700));
+  }
+
+  container.scrollTop = 0;
+
+    // 🔁 Restore the sticky element
+  if (stickyClone && stickyParent) {
+    console.log("🔁 Restoring .sticky-tabs-ref to original position");
+    if (stickyNextSibling) {
+      stickyParent.insertBefore(stickyClone, stickyNextSibling);
+    } else {
+      stickyParent.appendChild(stickyClone);
+    }
+  }
 
   chrome.runtime.sendMessage({
     action: "doneCapturing",
