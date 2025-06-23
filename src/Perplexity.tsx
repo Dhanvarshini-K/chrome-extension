@@ -444,24 +444,24 @@ function Perplexity({
     await triggerExtract();
   };
 
-  const setViewportWidth = async () => {
-    const [tab] = await chrome.tabs.query({
-      active: true,
-      currentWindow: true,
-    });
-    if (tab?.id) {
-      await chrome.scripting.executeScript({
-        target: { tabId: tab.id },
-        func: () => {
-          document.documentElement.style.width = "800px";
-          document.documentElement.style.maxWidth = "800px";
-          document.body.style.width = "800px";
-          document.body.style.maxWidth = "800px";
-          document.documentElement.style.overflowX = "auto";
-        },
-      });
-    }
-  };
+  // const setViewportWidth = async () => {
+  //   const [tab] = await chrome.tabs.query({
+  //     active: true,
+  //     currentWindow: true,
+  //   });
+  //   if (tab?.id) {
+  //     await chrome.scripting.executeScript({
+  //       target: { tabId: tab.id },
+  //       func: () => {
+  //         document.documentElement.style.width = "800px";
+  //         document.documentElement.style.maxWidth = "800px";
+  //         document.body.style.width = "800px";
+  //         document.body.style.maxWidth = "800px";
+  //         document.documentElement.style.overflowX = "auto";
+  //       },
+  //     });
+  //   }
+  // };
 
   return (
     <div className="query-details-container">
@@ -540,9 +540,9 @@ function Perplexity({
           </Button>
         </div>
       </div>
-      <div style={{ marginBottom: "1rem" }}>
+      {/* <div style={{ marginBottom: "1rem" }}>
         <Button onClick={setViewportWidth}>Set ViewPort Width</Button>
-      </div>
+      </div> */}
 
       {html && markdown ? (
         <>
