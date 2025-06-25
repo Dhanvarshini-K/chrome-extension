@@ -1,8 +1,20 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 console.log("✅ Content script loaded!");
 
+const getDataFromLocalStorage = (key: string): Promise<string | undefined> => {
+  return new Promise((resolve) => {
+    chrome.storage.local.get([key], (result) => {
+      resolve(result.engine);
+    });
+  });
+};
 (async () => {
-  const container = document.querySelector(".scrollable-container") as HTMLElement;
+  const engine = await getDataFromLocalStorage("engine");
+  console.log("Engine value:", engine);
+
+  const container = document.querySelector(
+    ".scrollable-container"
+  ) as HTMLElement;
   if (!container) {
     console.error("Container not found");
     return;
@@ -22,7 +34,7 @@ console.log("✅ Content script loaded!");
   container.scrollTop = 0;
   await new Promise((r) => setTimeout(r, 500));
 
-    // ⏱ Hold reference for restore
+  // ⏱ Hold reference for restore
   let stickyClone: Element | null = null;
   let stickyParent: Node | null = null;
   let stickyNextSibling: Node | null = null;
@@ -43,7 +55,7 @@ console.log("✅ Content script loaded!");
       const sticky = document.querySelector(".sticky-tabs-ref");
       if (sticky) {
         console.warn("❌ Removing .sticky-tabs-ref after first capture");
-        
+
         // 🧠 Store info to restore later
         stickyClone = sticky.cloneNode(true) as HTMLElement;
         stickyParent = sticky.parentNode;
@@ -71,7 +83,7 @@ console.log("✅ Content script loaded!");
 
   container.scrollTop = 0;
 
-    // 🔁 Restore the sticky element
+  // 🔁 Restore the sticky element
   if (stickyClone && stickyParent) {
     console.log("🔁 Restoring .sticky-tabs-ref to original position");
     if (stickyNextSibling) {
@@ -86,4 +98,3 @@ console.log("✅ Content script loaded!");
     screenshots,
   });
 })();
-
