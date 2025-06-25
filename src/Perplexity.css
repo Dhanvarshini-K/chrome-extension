@@ -83,3 +83,36 @@
   max-width: 100%;
   overflow-x: auto;
 }
+
+/* Specific button colors */
+.btn-remove-divs {
+  background-color: #e53935; /* red */
+}
+
+.btn-remove-divs:hover {
+  background-color: #d32f2f;
+}
+
+.btn-screenshot {
+  background-color: #1e88e5; /* blue */
+}
+
+.btn-screenshot:hover {
+  background-color: #1565c0;
+}
+
+.btn-run-automation {
+  background-color: #5b5b5b; /* indigo */
+}
+
+.btn-run-automation:hover {
+  background-color: #aeadb3;
+}
+
+.btn-start-extract {
+  background-color: #43a047; /* green */
+}
+
+.btn-start-extract:hover {
+  background-color: #388e3c;
+}
