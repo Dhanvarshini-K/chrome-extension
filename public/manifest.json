@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "NUI Extractor",
-  "version": "7.1",
-  "description": "A Chrome extension that integrates with ChatGPT to provide AI-powered assistance. Automated the query execution, extracted citations, removed irrelevant elements from the page, and added a screenshot capture feature.",
+  "version": "7.2",
+  "description": "A Chrome extension that integrates with ChatGPT to provide AI-powered assistance. Automated the query execution, extracted citations, removed irrelevant elements from the page, added a screenshot capture feature and Changed the remove div as JSON format.",
   "permissions": ["storage","scripting", "activeTab", "sidePanel", "tabs"],
   "background": {
     "service_worker": "background.js"
@@ -16,7 +16,7 @@
   ],
   "web_accessible_resources": [
     {
-      "resources": ["inject.js", "readLocalStorage.js", "clickSources.js"],
+      "resources": ["inject.js", "readLocalStorage.js", "clickSources.js","selectors.json"],
       "matches": ["<all_urls>"]
     }
   ],
