@@ -16,6 +16,7 @@ import {
   type QueryFormData,
 } from "./types";
 import { handleScreenshot } from "./utils/screenshotUtils";
+import type { SelectorGroup } from "./types/copilotSelectors";
 
 type ExtractedData = {
   html: string;
@@ -71,21 +72,6 @@ const Copilot = ({
     extractIdFromUrl();
   }, []);
 
-  // useEffect(() => {
-  //   const extractAllData = async () => {
-  //     await triggerExtract();
-  //     await triggerExtractCitations();
-
-  //     setExtractedTabs({
-  //       html: true,
-  //       markdown: true,
-  //       citations: true,
-  //     });
-  //   };
-
-  //   extractAllData();
-  // }, []);
-
   useEffect(() => {
     if (data.html) {
       renderOutput();
@@ -102,37 +88,6 @@ const Copilot = ({
     chrome.runtime.onMessage.addListener(listener);
     return () => chrome.runtime.onMessage.removeListener(listener);
   }, []);
-
-  // const triggerExtractCitations = async () => {
-  //   const [tab] = await chrome.tabs.query({
-  //     active: true,
-  //     currentWindow: true,
-  //   });
-
-  //   chrome.scripting.executeScript(
-  //     {
-  //       target: { tabId: tab.id! },
-  //       func: () => {
-  //         const anchors: NodeListOf<HTMLAnchorElement> =
-  //           document.querySelectorAll("div[data-copy='false'] a");
-
-  // const links = Array.from(anchors).map((a) => {
-  //   if (a && a?.href) {
-  //     const href = a.href;
-  //     const title = a.getAttribute("title");
-  //     return `[${title}](${href})`;
-  //   }
-  // });
-
-  //         return links.join("##NEWLINE##");
-  //       },
-  //     },
-  //     (injectionResults) => {
-  //       const result = injectionResults?.[0]?.result;
-  //       setCitations(result || "No content found");
-  //     }
-  //   );
-  // };
 
   const triggerExtractCitations = async () => {
     const [tab] = await chrome.tabs.query({
@@ -198,17 +153,17 @@ const Copilot = ({
           const inlineAnchors = document.querySelectorAll<HTMLAnchorElement>(
             "div[data-copy='false'] a[href]"
           );
-     
-         const links = Array.from(inlineAnchors)
-        .map((a) => {
-          const href = a.href;
-          const title = a.getAttribute("title") || href;
-          return href ? `[${title}](${href})` : null;
-        })
-        .filter((link): link is string => link !== null)
-        .join("##NEWLINE##");
 
-      return links
+          const links = Array.from(inlineAnchors)
+            .map((a) => {
+              const href = a.href;
+              const title = a.getAttribute("title") || href;
+              return href ? `[${title}](${href})` : null;
+            })
+            .filter((link): link is string => link !== null)
+            .join("##NEWLINE##");
+
+          return links;
         },
       },
       (injectionResults) => {
@@ -218,28 +173,6 @@ const Copilot = ({
     );
   };
 
-  // const triggerExtract = async () => {
-  //   const [tab] = await chrome.tabs.query({
-  //     active: true,
-  //     currentWindow: true,
-  //   });
-  //   chrome.scripting.executeScript(
-  //     {
-  //       target: { tabId: tab.id! },
-  //       func: () => {
-  //         const el = document.querySelector(
-  //           "main div[data-content=ai-message] div"
-  //         );
-  //         console.log("Element:", el);
-  //         return el ? el.outerHTML : "No content found";
-  //       },
-  //     },
-  //     (injectionResults) => {
-  //       const result = injectionResults?.[0]?.result;
-  //       setData({ html: result as string, text: "" });
-  //     }
-  //   );
-  // };
 
   const triggerExtract = async () => {
     const [tab] = await chrome.tabs.query({
@@ -321,116 +254,88 @@ const Copilot = ({
       currentWindow: true,
     });
 
-    chrome.scripting.executeScript({
+    const res = await fetch(chrome.runtime.getURL("copilotSelectors.json"));
+    const selectorGroups: SelectorGroup[] = await res.json();
+
+    await chrome.scripting.executeScript({
       target: { tabId: tab.id! },
-      func: () => {
-        // Remove the header
-        const header = document.querySelector(
-          "main div.sticky div.absolute"
-        ) as HTMLElement | null;
-        header?.remove();
+      func: (groups: SelectorGroup[]) => {
+        groups.forEach((group) => {
+          group.selectors.forEach((item) => {
+            if (!item) return;
 
-        // Remove Share and User buttons
-        document.querySelectorAll(".flex.gap-4 > div").forEach((div) => {
-          const button = div.querySelector("button");
-          if (
-            button?.title === "Share message and prompt" ||
-            button?.getAttribute("data-testid") === "settings-button"
-          ) {
-            div.remove();
-          }
-        });
+            const hasStyle = !!group.style;
 
-        // Remove buttons by title
-        ["Open Sidebar", "Start new chat", "Open actions menu"].forEach(
-          (title) => {
-            const btn = document.querySelector(`button[title="${title}"]`);
-            if (btn) {
-              btn.closest("div")?.remove();
+            const applyStyles = (el: HTMLElement) => {
+              if (hasStyle) {
+                // Style for element
+                const { parent, ...ownStyles } = group.style as any;
+                Object.entries(ownStyles).forEach(([key, value]) => {
+                  el.style[key as any] = value as string;
+                });
+
+                // Style for parent
+                if (parent && el.parentElement) {
+                  Object.entries(parent).forEach(([key, value]) => {
+                    (el.parentElement as HTMLElement).style[key as any] = value as string;
+                  });
+                }
+              }
+            };
+
+            if (item.multiple) {
+              const elements = document.querySelectorAll(item.selector);
+              elements.forEach((el) => {
+                if (hasStyle) {
+                  applyStyles(el as HTMLElement);
+                } else if (group.removeParent) {
+                  el.parentElement?.remove();
+                } else {
+                  el.remove();
+                }
+              });
+            } else {
+              const el = document.querySelector(item.selector);
+              if (!el) return;
+
+              if (hasStyle) {
+                applyStyles(el as HTMLElement);
+              } else if (group.removeParent) {
+                el.parentElement?.remove();
+              } else {
+                el.remove();
+              }
             }
-          }
-        );
-
-        // Remove buttons in the response container
-        const responseContainer = document.querySelector(
-          ".flex.flex-col.items-end.gap-3.pb-8"
-        ) as HTMLElement | null;
-        if (responseContainer) {
-          const buttons = responseContainer.querySelectorAll("button");
-          buttons.forEach((btn: HTMLButtonElement) => btn.remove());
-        }
-
-        // Hide the search box temporarily
-        const searchBox = document.querySelector(
-          "div.relative.mb-4 div.relative.min-h-composer"
-        ) as HTMLElement | null;
-        searchBox?.setAttribute("style", "display: none");
-
-        // Remove the bottom fade
-        const bottomFade = document.querySelector(
-          "main div.pointer-events-none div.t-bottom-fade"
-        ) as HTMLElement | null;
-        bottomFade?.remove();
-
-        // Remove the background gradient
-        const bgGradient = document.querySelector(
-          "main div.absolute div.bg-gradient-chat-light"
-        ) as HTMLElement | null;
-        bgGradient?.remove();
-
-        // Remove the Today separator
-        const todaySeparator = document.querySelector(
-          "main div[data-testid=chat-page] div.items-center"
-        ) as HTMLElement | null;
-        todaySeparator?.setAttribute("style", "display: none");
-
-        // Remove ratings controls
-        const ratingsControls = document.querySelectorAll(
-          "main div.ease-in-out"
-        ) as NodeListOf<HTMLElement>;
-        ratingsControls.forEach((x) => x.remove());
-
-        // Decolorize human prompt bubble background, citations, etc.
-        const elementsToGrey = document.querySelectorAll(
-          "div[data-content=user-message] div, button[aria-label*=Citation], a span.inline-block, table tr th, code.font-mono"
-        ) as NodeListOf<HTMLElement>;
-        elementsToGrey.forEach((el) => {
-          el.style.backgroundColor = "#e9e9e9";
+          });
         });
 
-        // Turn the background color to white
-        const backgroundElements = document.querySelectorAll(
-          "div[data-testid=chat-page], div.sticky > div.absolute"
-        ) as NodeListOf<HTMLElement>;
-        backgroundElements.forEach((el) => {
-          el.style.backgroundColor = "#fff";
-        });
+        let removed: boolean;
 
-        // Neutralize table borders
-        const tableBorders = document.querySelectorAll(
-          "table tr th, table tr td"
-        ) as NodeListOf<HTMLElement>;
-        tableBorders.forEach((el) => {
-          el.style.borderColor = "#e0e0e0";
-        });
+        do {
+          removed = false;
+          const allDivs: NodeListOf<HTMLDivElement> =
+            document.querySelectorAll("div");
 
-        //remove one more button
+          allDivs.forEach((div: HTMLDivElement) => {
+            const isEmpty: boolean = [...div.childNodes].every(
+              (node: ChildNode) => {
+                return (
+                  (node.nodeType === Node.TEXT_NODE &&
+                    node.textContent?.trim() === "") ||
+                  node.nodeType === Node.COMMENT_NODE
+                );
+              }
+            );
 
-        const btn = document.querySelector<HTMLButtonElement>(
-          "button[title*=Show][title*=more citations]"
-        );
-        if (btn) {
-          btn.remove();
-        }
-
-        //remove citations
-
-        const modal = document.querySelector('div[data-copy="false"]');
-        if (modal) {
-          const links = modal.querySelectorAll("a");
-          links.forEach((link) => link.remove());
-        }
+            if (isEmpty) {
+              div.remove();
+              removed = true;
+            }
+          });
+        } while (removed);
       },
+      args: [selectorGroups],
+      world: "MAIN",
     });
   };
 
