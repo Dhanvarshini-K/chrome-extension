@@ -20,24 +20,42 @@ const Home = ({ goQueryList, refreshQueryData }: HomeProps) => {
 
   const isSubmitDisabled = !agent || !engine || !file;
 
-  useEffect(() => {
-    const savedAgent = localStorage.getItem("agent");
-    const savedTaskId = localStorage.getItem("taskId");
-    const savedEngine = localStorage.getItem("engine") as AIEngine;
-    const wasSubmitted = localStorage.getItem("submitted") === "true";
+const loadFromStorage = async () => {
+  return new Promise<{
+    agent?: string;
+    taskId?: string;
+    engine?: string;
+    fileType?: string;
+    submitted?: boolean;
+    fileName?: string;
+  }>((resolve) => {
+    chrome.storage.local.get(
+      ["agent", "taskId", "engine", "fileType", "submitted", "fileName"],
+      (result) => resolve(result)
+    );
+  });
+};
 
-    const savedFileName = localStorage.getItem("fileName");
-    const savedFileType = localStorage.getItem("fileType");
+useEffect(() => {
+  (async () => {
+    const {
+      agent,
+      taskId,
+      engine,
+      fileType,
+      submitted,
+      fileName,
+    } = await loadFromStorage();
 
-    if (savedFileName && savedFileType) {
-      setFile(new File([], savedFileName, { type: savedFileType }));
+    if (fileName && fileType) {
+      setFile(new File([], fileName, { type: fileType }));
     }
-
-    if (savedAgent) setAgent(savedAgent);
-    if (savedTaskId) setTaskId(savedTaskId);
-    if (savedEngine) setEngine(savedEngine);
-    if (wasSubmitted) setSubmitted(true);
-  }, []);
+    if (agent) setAgent(agent);
+    if (taskId) setTaskId(taskId);
+    if (engine) setEngine(engine as AIEngine);
+    if (submitted) setSubmitted(true);
+  })();
+}, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -101,13 +119,12 @@ const Home = ({ goQueryList, refreshQueryData }: HomeProps) => {
       await createTableAndSaveData(dataObjects);
 
       await refreshQueryData();
-      localStorage.setItem("agent", agent);
-      localStorage.setItem("taskId", taskId);
-      localStorage.setItem("engine", engine);
-      localStorage.setItem("submitted", "true");
-
-      localStorage.setItem("fileName", file.name);
-      localStorage.setItem("fileType", file.type);
+      chrome.storage.local.set({ agent });
+      chrome.storage.local.set({ taskId });
+      chrome.storage.local.set({ engine });
+      chrome.storage.local.set({ fileType: file.type });
+      chrome.storage.local.set({ submitted: "true" });
+      chrome.storage.local.set({ fileName: file.name });
 
       setSubmitted(true);
     };
