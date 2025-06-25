@@ -45,6 +45,7 @@ function Perplexity({
   const [html, setHtml] = useState("");
   const [markdown, setMarkdown] = useState("");
   const [isCitationsLoading, setIsCitationsLoading] = useState(false);
+  const [isAutomationRunning, setIsAutomationRunning] = useState(false);
 
   const [citationsData, setCitationsData] = useState("");
   const [extractedTabs, setExtractedTabs] = useState<
@@ -58,50 +59,61 @@ function Perplexity({
   const { OID = "", Query = "", Engine = "" } = queryData || {};
 
   useEffect(() => {
-    if (OID && queryData?.Query) {
+    if (OID) {
       chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
         if (tab?.id) {
-          const query = queryData.Query;
           chrome.scripting.executeScript({
+            target: { tabId: tab.id },
+            func: (OID) => {
+              localStorage.setItem("OID", OID);
+            },
+            args: [OID],
+          });
+        }
+      });
+    }
+  }, [OID]);
+
+  const runAutomation = async () => {
+    if (queryData?.Query) {
+      try {
+        setIsAutomationRunning(true);
+        const [tab] = await chrome.tabs.query({
+          active: true,
+          currentWindow: true,
+        });
+        if (tab?.id) {
+          const query = queryData.Query;
+          await chrome.scripting.executeScript({
             target: { tabId: tab.id },
             func: (query: string) => {
               const delay = (ms: number) =>
                 new Promise((res) => setTimeout(res, ms));
-
               const simulateUserFlow = async () => {
-                // 1. Click New Chat
                 const newChatBtn = document.querySelector(
                   'button[class*="bg-offsetPlus"][class*="dark:bg-offsetPlusDark"]'
                 ) as HTMLElement;
                 if (newChatBtn) {
                   newChatBtn.click();
-                  await delay(1000); // wait for input to appear
+                  await delay(1000);
                 }
 
-                // 2. Set the query
                 const inputDiv = document.querySelector(
-                  '#ask-input[contenteditable="true"]'
+                  "#ask-input"
                 ) as HTMLElement | null;
+
                 if (inputDiv) {
                   inputDiv.focus();
-
                   const event = new InputEvent("input", {
                     bubbles: true,
                     cancelable: true,
                     inputType: "insertText",
                     data: query,
                   });
-
-                  const p = inputDiv.querySelector("p");
-                  if (p) {
-                    p.innerHTML = `<span>${query}</span>`;
-                    inputDiv.dispatchEvent(event);
-                  }
-
+                  inputDiv.dispatchEvent(event);
                   await delay(500);
                 }
 
-                // 3. Click the Submit button
                 const submitBtn = document.querySelector(
                   'button[data-testid="submit-button"]'
                 ) as HTMLButtonElement;
@@ -110,15 +122,16 @@ function Perplexity({
                   submitBtn.click();
                 }
               };
-
               simulateUserFlow();
             },
             args: [query],
           });
         }
-      });
+      } catch (error: any) {
+        console.error("Automation error:", error);
+      }
     }
-  }, [OID, queryData?.Query]);
+  };
 
   const injectScript = async () => {
     const [tab] = await chrome.tabs.query({
@@ -246,6 +259,14 @@ function Perplexity({
     chrome.scripting.executeScript({
       target: { tabId: tab.id! },
       func: () => {
+        const answerTab = document.querySelector(
+          "button[data-testid='answer-mode-tabs-tab-search']"
+        ) as HTMLButtonElement;
+
+        if (answerTab) {
+          answerTab.click();
+        }
+
         const targetDivs = [
           ".animate-in.fade-in.duration-100.ease-out.border-borderMain\\/50.ring-borderMain\\/50.divide-borderMain\\/50.dark\\:divide-borderMainDark\\/50.dark\\:ring-borderMainDark\\/50.dark\\:border-borderMainDark\\/50.bg-transparent",
           ".table .relative.flex",
@@ -288,24 +309,29 @@ function Perplexity({
           el.style.color = "#555";
         });
 
-        //bg testing
         document
-          .querySelectorAll<HTMLDivElement>('body div[class*="bg-"]')
-          .forEach((el) => {
-            const bg = getComputedStyle(el).backgroundColor;
-            const isTransparent =
-              bg === "rgba(0, 0, 0, 0)" || bg === "transparent";
+  .querySelectorAll<HTMLElement>('body div[class*="bg-"], body button[class*="bg-"]')
+  .forEach((el) => {
+    const isDiv = el.tagName === "DIV";
+    const hasCodeWrapper = el.className.includes("codeWrapper");
+    const isCodeLanguageIndicator = el.getAttribute("data-testid") === "code-language-indicator";
 
-            el.className = el.className
-              .split(" ")
-              .filter((cls) => !cls.startsWith("bg-") && !cls.includes(":bg-"))
-              .join(" ");
+    // ❌ Skip if it's a <div> and matches exclusion criteria
+    if (isDiv && (hasCodeWrapper || isCodeLanguageIndicator)) return;
 
-            if (!isTransparent) {
-              el.style.backgroundColor = "#fff";
-            }
-          });
-        
+    const bg = getComputedStyle(el).backgroundColor;
+    const isTransparent = bg === "rgba(0, 0, 0, 0)" || bg === "transparent";
+
+    el.className = el.className
+      .split(" ")
+      .filter((cls) => !cls.startsWith("bg-") && !cls.includes(":bg-"))
+      .join(" ");
+
+    if (!isTransparent) {
+      el.style.backgroundColor = "#fff";
+    }
+  });
+
         //Removed dots
 
         const dotsIcon = document.querySelector(
@@ -313,10 +339,25 @@ function Perplexity({
         ) as HTMLElement | null;
         dotsIcon?.remove();
 
+         const repeatIcon = document.querySelector(
+          ".tabler-icon.tabler-icon-repeat"
+        ) as HTMLElement | null;
+        if(repeatIcon) repeatIcon?.remove();
+
+          const shareIcon = document.querySelector(
+          ".tabler-icon.tabler-icon-share-3"
+        ) as HTMLElement | null;
+        if(shareIcon) shareIcon?.remove();
+
         [
           ...document.querySelectorAll("div.-mx-sm.gap-xs.relative.flex"),
           ...document.querySelectorAll("div.gap-sm.grid.grid-cols-4.md\\:px-0"),
         ].forEach((el) => el.remove());
+
+        const relatedContainer =  document.querySelector(".animate-in.fade-in.duration-100.ease-out.border-borderMain\\/50.ring-borderMain\\/50.divide-borderMain\\/50.dark\\:divide-borderMainDark\\/50.dark\\:ring-borderMainDark\\/50.dark\\:border-borderMainDark\\/50.bg-transparent");
+        if(relatedContainer) {
+          relatedContainer.remove();
+        }
       },
     });
   };
@@ -335,6 +376,15 @@ function Perplexity({
         await chrome.scripting.executeScript({
           target: { tabId: tab.id },
           func: () => {
+            // 👇 Click the "Sources" tab before listening
+            const sourcesTab = document.querySelector(
+              "button[data-testid='answer-mode-tabs-tab-sources']"
+            ) as HTMLButtonElement;
+
+            if (sourcesTab) {
+              sourcesTab.click();
+            }
+
             window.addEventListener("message", (event) => {
               console.log("event", event);
               if (event.source !== window) return;
@@ -355,19 +405,31 @@ function Perplexity({
           },
         });
 
-        setTimeout(() => {
-          const storageKey = `citations_${OID}`;
+        const storageKey = `citations_${OID}`;
+        let attempts = 0;
+        const maxAttempts = 5;
 
+        const checkCitations = () => {
           chrome.storage.local.get([storageKey], (result) => {
             const citations = result[storageKey];
-            const markdown = citations
-              ?.map((page: any) => `[${page.title}](${page.url})`)
-              .join("##NEWLINE##");
+            if (citations && citations.length) {
+              const markdown = citations
+                .map((page: any) => `[${page.title}](${page.url})`)
+                .join("##NEWLINE##");
 
-            setCitationsData(markdown || "");
-            setIsCitationsLoading(false);
+              setCitationsData(markdown);
+              setIsCitationsLoading(false);
+            } else if (attempts < maxAttempts) {
+              attempts++;
+              setTimeout(checkCitations, 1000);
+            } else {
+              setIsCitationsLoading(false); // Timeout fallback
+              setCitationsData("No citations found.");
+            }
           });
-        }, 1000);
+        };
+
+        checkCitations();
       }
     }
 
@@ -441,27 +503,10 @@ function Perplexity({
   };
 
   const startExtract = async () => {
+    setIsAutomationRunning(false);
     await triggerExtract();
   };
 
-  // const setViewportWidth = async () => {
-  //   const [tab] = await chrome.tabs.query({
-  //     active: true,
-  //     currentWindow: true,
-  //   });
-  //   if (tab?.id) {
-  //     await chrome.scripting.executeScript({
-  //       target: { tabId: tab.id },
-  //       func: () => {
-  //         document.documentElement.style.width = "800px";
-  //         document.documentElement.style.maxWidth = "800px";
-  //         document.body.style.width = "800px";
-  //         document.body.style.maxWidth = "800px";
-  //         document.documentElement.style.overflowX = "auto";
-  //       },
-  //     });
-  //   }
-  // };
 
   return (
     <div className="query-details-container">
@@ -531,18 +576,20 @@ function Perplexity({
       </div>
       <div className="value-container">
         <div style={{ marginBottom: "1rem" }}>
-          <Button onClick={removeDiv}>Remove Related Divs</Button>
+          <Button onClick={removeDiv} className="btn-remove-divs">
+            Remove Related Divs
+          </Button>
         </div>
 
-        <div style={{ marginBottom: "1rem", width: "45%" }}>
-          <Button onClick={() => handleScreenshot(ResponseImage)}>
+        <div style={{ marginBottom: "1rem", width: "48%" }}>
+          <Button
+            onClick={() => handleScreenshot(ResponseImage)}
+            className="btn-screenshot"
+          >
             Screenshot
           </Button>
         </div>
       </div>
-      {/* <div style={{ marginBottom: "1rem" }}>
-        <Button onClick={setViewportWidth}>Set ViewPort Width</Button>
-      </div> */}
 
       {html && markdown ? (
         <>
@@ -550,7 +597,8 @@ function Perplexity({
             {tabs.map((tab) => (
               <Button
                 key={tab}
-                className={`tab-button ${extractedTabs[tab] ? "extracted" : ""
+                className={`tab-button ${
+                  extractedTabs[tab] ? "extracted" : ""
                 }`}
                 onClick={() => handleTabClick(tab)}
               >
@@ -600,7 +648,25 @@ function Perplexity({
           </div>
         </>
       ) : (
-        <Button buttonText="Start Extract" onClick={startExtract} />
+        <div className="value-container">
+          <div style={{ width: "47%" }}>
+            <Button
+              onClick={runAutomation}
+              buttonText={"Run Automation"}
+              style={{ marginBottom: "1rem" }}
+              className="btn-run-automation"
+              disabled={isAutomationRunning}
+            />
+          </div>
+          <div style={{ width: "48%" }}>
+            <Button
+              buttonText="Start Extract"
+              onClick={startExtract}
+              style={{ marginBottom: "1rem", width: "45%" }}
+              className="btn-start-extract"
+            />
+          </div>
+        </div>
       )}
     </div>
   );
