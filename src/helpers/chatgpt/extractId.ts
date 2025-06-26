@@ -7,3 +7,9 @@ export function extractIdFromPathForCopilot(text: string) {
   const match = text.match(/\/chats\/([a-zA-Z0-9_-]+)/);
   return match ? match[1] : null;
 }
+
+export function extractIfFromPathForBIC(url:string){
+    const match = url.match(/\/([0-9a-fA-F\-]+)\?/);
+    console.log('match',match)
+    return match ? match[1] : null;
+}
