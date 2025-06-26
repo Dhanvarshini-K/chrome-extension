@@ -1,20 +1,40 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 console.log("✅ Content script loaded!");
 
-const getDataFromLocalStorage = (key: string): Promise<string | undefined> => {
-  return new Promise((resolve) => {
-    chrome.storage.local.get([key], (result) => {
-      resolve(result.engine);
-    });
-  });
-};
 (async () => {
+  const getDataFromLocalStorage = (key: string): Promise<string | undefined> => {
+    return new Promise((resolve) => {
+      chrome.storage.local.get([key], (result) => {
+        resolve(result.engine);
+      });
+    });
+  };
   const engine = await getDataFromLocalStorage("engine");
   console.log("Engine value:", engine);
 
-  const container = document.querySelector(
-    ".scrollable-container"
-  ) as HTMLElement;
+  let container: HTMLElement | null = null;
+
+switch (engine) {
+  case "PplxPro": {
+    container = document.querySelector(".scrollable-container") as HTMLElement | null;
+    break;
+  }
+  case "Cplt": {
+    container = document.querySelector(".scrollbar-stable") as HTMLElement | null;
+    break;
+  }
+  case "ChatGptPro": {
+    const baseEl = document.querySelector('[data-testid^="conversation-turn-"]');
+    container = baseEl?.parentElement?.parentElement as HTMLElement | null;
+    break;
+  }
+  default: {
+    console.warn("⚠️ Unrecognized engine, using default fallback");
+    container = document.querySelector(".scrollable-container") as HTMLElement | null;
+  }
+}
+
+
   if (!container) {
     console.error("Container not found");
     return;
@@ -92,9 +112,11 @@ const getDataFromLocalStorage = (key: string): Promise<string | undefined> => {
       stickyParent.appendChild(stickyClone);
     }
   }
+// const scrollbarWidth = container.offsetWidth - container.clientWidth;
 
   chrome.runtime.sendMessage({
     action: "doneCapturing",
     screenshots,
+    scrollbarWidth: 18,
   });
 })();

@@ -4,6 +4,7 @@ import "./Home.css";
 import { setCSVData } from "../../utils";
 import { createTableAndSaveData } from "../../utils/indexedDB";
 import { AIEngine } from "../../types";
+import { getStorage, setStorage } from "../../utils/localStorage";
 
 interface HomeProps {
   goQueryList: () => void;
@@ -20,42 +21,28 @@ const Home = ({ goQueryList, refreshQueryData }: HomeProps) => {
 
   const isSubmitDisabled = !agent || !engine || !file;
 
-const loadFromStorage = async () => {
-  return new Promise<{
-    agent?: string;
-    taskId?: string;
-    engine?: string;
-    fileType?: string;
-    submitted?: boolean;
-    fileName?: string;
-  }>((resolve) => {
-    chrome.storage.local.get(
-      ["agent", "taskId", "engine", "fileType", "submitted", "fileName"],
-      (result) => resolve(result)
-    );
-  });
-};
 
-useEffect(() => {
-  (async () => {
-    const {
-      agent,
-      taskId,
-      engine,
-      fileType,
-      submitted,
-      fileName,
-    } = await loadFromStorage();
+  useEffect(() => {
+    (async () => {
+      const { agent, taskId, engine, fileType, submitted, fileName } =
+        await getStorage([
+          "agent",
+          "taskId",
+          "engine",
+          "fileType",
+          "submitted",
+          "fileName",
+        ]);
 
-    if (fileName && fileType) {
-      setFile(new File([], fileName, { type: fileType }));
-    }
-    if (agent) setAgent(agent);
-    if (taskId) setTaskId(taskId);
-    if (engine) setEngine(engine as AIEngine);
-    if (submitted) setSubmitted(true);
-  })();
-}, []);
+      if (fileName && fileType) {
+        setFile(new File([], fileName, { type: fileType }));
+      }
+      if (agent) setAgent(agent);
+      if (taskId) setTaskId(taskId);
+      if (engine) setEngine(engine as AIEngine); // :white_check_mark: Cast if engine is typed enum or union
+      if (submitted) setSubmitted(submitted); // Ensures boolean
+    })();
+  }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -119,12 +106,14 @@ useEffect(() => {
       await createTableAndSaveData(dataObjects);
 
       await refreshQueryData();
-      chrome.storage.local.set({ agent });
-      chrome.storage.local.set({ taskId });
-      chrome.storage.local.set({ engine });
-      chrome.storage.local.set({ fileType: file.type });
-      chrome.storage.local.set({ submitted: "true" });
-      chrome.storage.local.set({ fileName: file.name });
+      setStorage({
+        agent,
+        taskId,
+        engine,
+        fileType: file.type,
+        submitted: "true",
+        fileName: file.name,
+      });
 
       setSubmitted(true);
     };

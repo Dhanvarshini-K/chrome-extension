@@ -11,7 +11,7 @@ export const handleScreenshot = async (fileName: string) => {
     // Listen for final images
     chrome.runtime.onMessage.addListener(function listener(message) {
       if (message.action === "doneCapturing") {
-        stitchAndDownload(message.screenshots, fileName);
+        stitchAndDownload(message.screenshots,message.scrollbarWidth, fileName);
         chrome.runtime.onMessage.removeListener(listener); // Clean up
       }
     });
@@ -20,6 +20,7 @@ export const handleScreenshot = async (fileName: string) => {
 
 export const stitchAndDownload = async (
   images: { dataUrl: string; startY: number; endY: number }[],
+  scrollbarWidth:any,
   fileName: string
 ) => {
 
@@ -35,26 +36,29 @@ export const stitchAndDownload = async (
     )
   );
 
-  function getScrollbarWidth(): number {
-    const outer = document.createElement("div");
-    outer.style.visibility = "hidden";
-    outer.style.overflow = "scroll";
-    outer.style.position = "absolute";
-    outer.style.top = "-9999px";
-    outer.style.width = "100px";
-    document.body.appendChild(outer);
+  // function getScrollbarWidth(): number {
+  //   const outer = document.createElement("div");
+  //   outer.style.visibility = "hidden";
+  //   outer.style.overflow = "scroll";
+  //   outer.style.position = "absolute";
+  //   outer.style.top = "-9999px";
+  //   outer.style.width = "100px";
+  //   document.body.appendChild(outer);
 
-    const inner = document.createElement("div");
-    inner.style.width = "100%";
-    outer.appendChild(inner);
+  //   const inner = document.createElement("div");
+  //   inner.style.width = "100%";
+  //   outer.appendChild(inner);
 
-    const scrollbarWidth = outer.offsetWidth - inner.offsetWidth;
-    outer.remove();
+  //   const scrollbarWidth = outer.offsetWidth - inner.offsetWidth;
+  //   outer.remove();
 
-    return scrollbarWidth;
-  }
+  //   return scrollbarWidth;
+  // }
 
-  const SCROLLBAR_WIDTH = getScrollbarWidth();
+  // const SCROLLBAR_WIDTH = getScrollbarWidth();
+
+  const SCROLLBAR_WIDTH = scrollbarWidth;
+  console.log("scroll width",SCROLLBAR_WIDTH)
   const originalWidth = loadedImgs[0].naturalWidth;
   const width = originalWidth - SCROLLBAR_WIDTH;
 

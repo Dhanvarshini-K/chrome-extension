@@ -7,7 +7,8 @@ import { HEADERS, type QueryItem } from "../../types";
 import { useState } from "react";
 import { DB_NAME } from "../../utils";
 import Fuse from "fuse.js";
-import {version} from "../../../package.json"
+import { version } from "../../../package.json";
+import { getStorage, removeFromStorage } from "../../utils/localStorage";
 
 interface QueryListProps {
   data: QueryItem[];
@@ -32,12 +33,21 @@ const QueryList: React.FC<QueryListProps> = ({
   const [itemsPerPage, setItemsPerPage] = useState(10);
 
   const [currentPage, setCurrentPage] = useState(1);
+  const [agent, setAgent] = useState<string | undefined>(undefined);
   useEffect(() => {
-    chrome.storage.local.get(["queryListCurrentPage"], (result) => {
-      if (result.queryListCurrentPage) {
-        setCurrentPage(result.queryListCurrentPage);
+    const fetchData = async () => {
+      const values = await getStorage(["queryListCurrentPage", "agent"]);
+
+      if (values.queryListCurrentPage) {
+        setCurrentPage(values.queryListCurrentPage);
       }
-    });
+
+      if (values.agent) {
+        setAgent(values.agent);
+      }
+    };
+
+    fetchData();
   }, []);
   useEffect(() => {
     chrome.storage.local.set({ queryListCurrentPage: currentPage });
@@ -83,7 +93,6 @@ const QueryList: React.FC<QueryListProps> = ({
     return "Completed";
   }, [data]);
 
-  const agent = localStorage.getItem("agent");
 
   async function handleExtract() {
     try {
@@ -172,12 +181,8 @@ const QueryList: React.FC<QueryListProps> = ({
           setIsDeleting(false);
           setShowModal(false);
           await refreshQueryData();
-          localStorage.setItem("agent", "");
-          localStorage.setItem("taskId", "");
-          localStorage.setItem("engine", "");
-          localStorage.setItem("submitted", "false");
-          localStorage.setItem("fileName", "");
-          localStorage.setItem("fileType", "");
+          await removeFromStorage(["agent", "engine", "taskId", "fileType", "submitted", "fileName"]);
+
           goHome();
         };
 
@@ -206,7 +211,6 @@ const QueryList: React.FC<QueryListProps> = ({
     setShowModal(false);
   }
 
-
   function goQueryDetails(item: QueryItem) {
     return goChat({
       OID: item.OID,
@@ -214,7 +218,6 @@ const QueryList: React.FC<QueryListProps> = ({
       Engine: item.Engine,
     });
   }
-
 
   return (
     <div className="query-list-container">
@@ -261,7 +264,9 @@ const QueryList: React.FC<QueryListProps> = ({
             {`Status : ${status}`}
           </div>
         </div>
-        <p><span style={{fontWeight:"bold"}}>Version:</span> {version}</p>
+        <p>
+          <span style={{ fontWeight: "bold" }}>Version:</span> {version}
+        </p>
         <div className="search-bar">
           <input
             type="text"
