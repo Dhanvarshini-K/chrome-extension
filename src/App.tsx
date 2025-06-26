@@ -9,16 +9,17 @@ import Chatgpt from "./ChatGpt";
 import type { QueryFormData, QueryItem } from "./types";
 import Copilot from "./Copilot";
 import { getStorage } from "./utils/localStorage";
+import BingImageCreator from "./BingImageCreator";
 
 function App() {
   const [page, setPage] = useState<
-    "home" | "queryList" | "chatgpt" | "perplexity" | "copilot"
+    "home" | "queryList" | "chatgpt" | "perplexity" | "copilot" | "BIC"
   >("home");
   const [selectedQuery, setSelectedQuery] = useState<QueryFormData | null>(
     null
   );
   const [queryData, setQueryData] = useState<QueryItem[]>([]);
-    const [engine,setEngine] = useState<string|undefined>(undefined)
+  const [engine, setEngine] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     refreshQueryData();
@@ -26,7 +27,7 @@ function App() {
       const { engine } = await getStorage(["engine"]);
       if (engine) {
         console.log("Loaded engine:", engine);
-        setEngine(engine)
+        setEngine(engine);
       }
     })();
   }, []);
@@ -52,8 +53,11 @@ function App() {
       setPage("perplexity");
     } else if (engine === "ChatGptPro") {
       setPage("chatgpt");
-    } else {
+    } else if(engine === "Cplt"){
       setPage("copilot");
+    }
+    else {
+      setPage("BIC");
     }
   };
 
@@ -98,6 +102,16 @@ function App() {
             goQueryList={goQueryList}
             refreshQueryData={refreshQueryData}
             queryData={selectedQuery}
+          />
+        );
+      case "BIC":
+        return (
+          <BingImageCreator
+            goHome={goHome}
+            goQueryList={goQueryList}
+            queryData={selectedQuery}
+            refreshQueryData={refreshQueryData}
+
           />
         );
       default:

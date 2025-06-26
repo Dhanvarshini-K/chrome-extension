@@ -5,8 +5,6 @@ export const DB_NAME = "ChatGPTStore";
 export const STORE_NAME = "SavedQueries";
 export const DB_VERSION = 1;
 
-
-
 // Open the IndexedDB database
 async function openDatabase() {
   return openDB(DB_NAME, DB_VERSION, {
@@ -40,7 +38,7 @@ export async function saveOrUpdate(payload: { [key: string]: any }) {
     const existing = await oidIndex.get(payload.OID);
 
     const fullPayload: any = existing ? { ...existing } : {};
-  
+
     for (const key of HEADERS) {
       if (key in payload) {
         fullPayload[key] = payload[key];
@@ -73,8 +71,10 @@ export async function createTableAndSaveData(dataObjects: any[]) {
     for (const key of HEADERS) {
       fullRow[key] = key in row ? row[key] : "";
     }
-
-    const existing = await oidIndex.get(fullRow.OID);
+    let existing;
+    if (fullRow?.OID) {
+      existing = await oidIndex.get(fullRow?.OID);
+    }
 
     if (existing) {
       await store.put({ ...existing, ...fullRow });
@@ -99,7 +99,6 @@ export async function createTableAndSaveData(dataObjects: any[]) {
 //     throw error;
 //   }
 // }
-
 
 export async function doesIndexedDBExist(dbName: string): Promise<boolean> {
   return new Promise((resolve, reject) => {
@@ -126,7 +125,6 @@ export async function doesIndexedDBExist(dbName: string): Promise<boolean> {
     };
   });
 }
-
 
 export async function getAllFromIndexedDB(): Promise<any[]> {
   const dbExists = await doesIndexedDBExist(DB_NAME);

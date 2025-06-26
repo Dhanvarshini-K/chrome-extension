@@ -11,7 +11,7 @@ interface HomeProps {
   refreshQueryData: () => Promise<void>;
 }
 
-const Home = ({ goQueryList, refreshQueryData }: HomeProps) => {
+const Home = ({ goQueryList,refreshQueryData }: HomeProps) => {
   const [agent, setAgent] = useState("");
   const [taskId, setTaskId] = useState("");
   const [engine, setEngine] = useState<AIEngine>(AIEngine.ChatGPT);
@@ -74,7 +74,7 @@ const Home = ({ goQueryList, refreshQueryData }: HomeProps) => {
 
       const headers = lines[0].split("\t").map((h) => h.trim().toLowerCase());
       const oidIndex = headers.findIndex((h) => h === "oid");
-      const queryIndex = headers.findIndex((h) => h.includes("query"));
+      const queryIndex = headers.findIndex((h) => h === "query");
 
       if (oidIndex === -1 || queryIndex === -1) {
         setError("Required columns 'OID' and 'Query' not found in the file.");
@@ -82,18 +82,19 @@ const Home = ({ goQueryList, refreshQueryData }: HomeProps) => {
       }
 
       const cleanQuery = (raw: string) => {
-        if (raw.startsWith('"') && raw.endsWith('"')) {
+        if (raw && raw?.startsWith('"') && raw?.endsWith('"')) {
           raw = raw.slice(1, -1);
         }
-        return raw.replace(/""/g, '"');
+        return raw?.replace(/""/g, '"');
       };
 
       const dataObjects = lines.slice(1).map((line) => {
         const columns = line.split("\t").map((col) => col.trim());
+        
         return {
           TaskID: taskId,
           OID: columns[oidIndex],
-          Query: cleanQuery(columns[queryIndex]),
+          Query:cleanQuery(columns[queryIndex]),
           QueryID: columns[oidIndex],
           Agent: agent,
           Engine: engine,
@@ -102,8 +103,10 @@ const Home = ({ goQueryList, refreshQueryData }: HomeProps) => {
         };
       });
 
-      setCSVData(dataObjects);
-      await createTableAndSaveData(dataObjects);
+      const validData = dataObjects.filter(row => row.OID);
+
+      setCSVData(validData);
+      await createTableAndSaveData(validData);
 
       await refreshQueryData();
       setStorage({
@@ -173,6 +176,7 @@ const Home = ({ goQueryList, refreshQueryData }: HomeProps) => {
                 <option value={AIEngine.ChatGPT}>ChatGPT</option>
                 <option value={AIEngine.Perplexity}>Perplexity</option>
                 <option value={AIEngine.Copilot}>Copilot</option>
+                <option value={AIEngine.BIC}>BIC</option>
               </select>
             </div>
 
