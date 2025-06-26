@@ -213,6 +213,7 @@ const Chatgpt = ({
           "#thread-bottom-container",
           "#sidebar-header",
           "#sidebar",
+          ".draggable",
         ];
         targetDivs2.forEach((selector) => {
           const divs = document.querySelectorAll(selector);
@@ -223,9 +224,15 @@ const Chatgpt = ({
           const divs = document.querySelectorAll(selector);
           divs.forEach((div) => div.remove());
         });
-        document.documentElement.style.overflow = "auto";
-        document.body.style.overflow = "auto";
-        document.body.style.height = "auto";
+
+        const reactionsDiv = document.querySelector("button[data-testid='copy-turn-action-button']") 
+        if(reactionsDiv) reactionsDiv?.parentElement?.parentElement?.remove()
+
+        const downArrow = document.querySelector("svg.icon.text-token-text-primary")
+        if(downArrow) downArrow?.parentElement?.parentElement?.remove()
+        // document.documentElement.style.overflow = "auto";
+        // document.body.style.overflow = "auto";
+        // document.body.style.height = "auto";
       },
     });
   };
