@@ -10,10 +10,17 @@ import type { QueryFormData, QueryItem } from "./types";
 import Copilot from "./Copilot";
 import { getStorage } from "./utils/localStorage";
 import BingImageCreator from "./BingImageCreator";
+import Claude from "./Claude";
 
 function App() {
   const [page, setPage] = useState<
-    "home" | "queryList" | "chatgpt" | "perplexity" | "copilot" | "BIC"
+    | "home"
+    | "queryList"
+    | "chatgpt"
+    | "perplexity"
+    | "copilot"
+    | "BIC"
+    | "claude"
   >("home");
   const [selectedQuery, setSelectedQuery] = useState<QueryFormData | null>(
     null
@@ -53,10 +60,11 @@ function App() {
       setPage("perplexity");
     } else if (engine === "ChatGptPro") {
       setPage("chatgpt");
-    } else if(engine === "Cplt"){
+    } else if (engine === "Cplt") {
       setPage("copilot");
-    }
-    else {
+    } else if (engine === "ClaudeSonnet" || engine === "ClaudeOpus") {
+      setPage("claude");
+    } else {
       setPage("BIC");
     }
   };
@@ -104,6 +112,15 @@ function App() {
             queryData={selectedQuery}
           />
         );
+      case "claude":
+        return (
+          <Claude
+            goHome={goHome}
+            goQueryList={goQueryList}
+            refreshQueryData={refreshQueryData}
+            queryData={selectedQuery}
+          />
+        );
       case "BIC":
         return (
           <BingImageCreator
@@ -111,7 +128,6 @@ function App() {
             goQueryList={goQueryList}
             queryData={selectedQuery}
             refreshQueryData={refreshQueryData}
-
           />
         );
       default:

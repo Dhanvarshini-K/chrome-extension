@@ -9,7 +9,7 @@ import {
 import Breadcrumbs from "./components/Breadcrumbs/Breadcrumbs";
 import CopyButton from "./components/CopyButton/CopyButton";
 import Button from "./components/Button/Button";
-import { extractIfFromPathForBIC } from "./helpers/chatgpt/extractId";
+import { extractIdFromPathForBIC } from "./helpers/chatgpt/extractId";
 import { saveOrUpdate } from "./utils";
 
 interface BingImageCreatorProps {
@@ -133,7 +133,7 @@ const BingImageCreator = ({
       currentWindow: true,
     });
     const url = tab.url || "";
-    const id = extractIfFromPathForBIC(url);
+    const id = extractIdFromPathForBIC(url);
     if (id) {
       setId(id);
     }

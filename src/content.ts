@@ -2,7 +2,9 @@
 console.log("✅ Content script loaded!");
 
 (async () => {
-  const getDataFromLocalStorage = (key: string): Promise<string | undefined> => {
+  const getDataFromLocalStorage = (
+    key: string
+  ): Promise<string | undefined> => {
     return new Promise((resolve) => {
       chrome.storage.local.get([key], (result) => {
         resolve(result.engine);
@@ -14,26 +16,41 @@ console.log("✅ Content script loaded!");
 
   let container: HTMLElement | null = null;
 
-switch (engine) {
-  case "PplxPro": {
-    container = document.querySelector(".scrollable-container") as HTMLElement | null;
-    break;
+  switch (engine) {
+    case "PplxPro": {
+      container = document.querySelector(
+        ".scrollable-container"
+      ) as HTMLElement | null;
+      break;
+    }
+    case "Cplt": {
+      container = document.querySelector(
+        ".scrollbar-stable"
+      ) as HTMLElement | null;
+      break;
+    }
+    case "ChatGptPro": {
+      const baseEl = document.querySelector(
+        '[data-testid^="conversation-turn-"]'
+      );
+      container = baseEl?.parentElement?.parentElement as HTMLElement | null;
+      break;
+    }
+    case "ClaudeS": 
+    case "ClaudeO" :{
+      const baseEl = document.querySelector(
+        ".relative.h-full.flex-1.flex.overflow-x-hidden.overflow-y-scroll.pt-6"
+      );
+      container = baseEl?.parentElement?.parentElement as HTMLElement | null;
+      break;
+    }
+    default: {
+      console.warn("⚠️ Unrecognized engine, using default fallback");
+      container = document.querySelector(
+        ".scrollable-container"
+      ) as HTMLElement | null;
+    }
   }
-  case "Cplt": {
-    container = document.querySelector(".scrollbar-stable") as HTMLElement | null;
-    break;
-  }
-  case "ChatGptPro": {
-    const baseEl = document.querySelector('[data-testid^="conversation-turn-"]');
-    container = baseEl?.parentElement?.parentElement as HTMLElement | null;
-    break;
-  }
-  default: {
-    console.warn("⚠️ Unrecognized engine, using default fallback");
-    container = document.querySelector(".scrollable-container") as HTMLElement | null;
-  }
-}
-
 
   if (!container) {
     console.error("Container not found");
@@ -112,7 +129,7 @@ switch (engine) {
       stickyParent.appendChild(stickyClone);
     }
   }
-// const scrollbarWidth = container.offsetWidth - container.clientWidth;
+  // const scrollbarWidth = container.offsetWidth - container.clientWidth;
 
   chrome.runtime.sendMessage({
     action: "doneCapturing",

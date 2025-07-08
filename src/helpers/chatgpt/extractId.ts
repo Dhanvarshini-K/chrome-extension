@@ -8,8 +8,19 @@ export function extractIdFromPathForCopilot(text: string) {
   return match ? match[1] : null;
 }
 
-export function extractIfFromPathForBIC(url:string){
-    const match = url.match(/\/([0-9a-fA-F\-]+)\?/);
-    console.log('match',match)
-    return match ? match[1] : null;
+export function extractIdFromPathForBIC(url: string) {
+  const match = url.match(/\/([0-9a-fA-F\-]+)\?/);
+  console.log("match", match);
+  return match ? match[1] : null;
+}
+
+export function extractIdFromPathForClaude(url: string) {
+  const match = url.match(/\/chat\/([a-f0-9\-]+)/);
+  if (match) {
+    const chatId = match[1];
+    console.log("Chat ID:", chatId);
+    return chatId;
+  } else {
+    console.log("No chat ID found.");
+  }
 }

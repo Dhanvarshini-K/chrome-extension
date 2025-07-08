@@ -177,6 +177,8 @@ const Home = ({ goQueryList,refreshQueryData }: HomeProps) => {
                 <option value={AIEngine.Perplexity}>Perplexity</option>
                 <option value={AIEngine.Copilot}>Copilot</option>
                 <option value={AIEngine.BIC}>BIC</option>
+                <option value={AIEngine.ClaudeS}>Claude Sonnet</option>
+                <option value={AIEngine.ClaudeO}>Claude Opus</option>
               </select>
             </div>
 
