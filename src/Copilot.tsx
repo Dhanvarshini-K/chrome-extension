@@ -44,6 +44,7 @@ const Copilot = ({
   );
   const [html, setHtml] = useState("");
   const [markdown, setMarkdown] = useState("");
+  // const [isAutomationRunning, setIsAutomationRunning] = useState(false);
 
   const [extractedTabs, setExtractedTabs] = useState<
     Record<ResponseTabsType, boolean>
@@ -427,9 +428,9 @@ const Copilot = ({
     });
   };
 
-  const copilotStagingLinkOne = "https://aka.ms/copilot-mai-stg";
-  const copilotStagingLinkTwo =
-    "https://copilot.microsoft.com/?setflight=newcopilot&features=-,ncstg,respondingchatgpt-gg,citationformatupdate";
+  // const copilotStagingLinkOne = "https://aka.ms/copilot-mai-stg";
+  // const copilotStagingLinkTwo =
+  //   "https://copilot.microsoft.com/?setflight=newcopilot&features=-,ncstg,respondingchatgpt-gg,citationformatupdate";
 
   return (
     <div className="query-details-container">
@@ -494,7 +495,7 @@ const Copilot = ({
             <CopyButton value={formattedDate} />
           </div>
         </div>
-
+{/* 
         <div>
           <p className="field-text">Link 1:</p>
           <div className="value-container">
@@ -508,7 +509,7 @@ const Copilot = ({
             <span className="pre-block">{copilotStagingLinkTwo}</span>
             <CopyButton value={copilotStagingLinkTwo} />
           </div>
-        </div>
+        </div> */}
       </div>
 
       <div style={{ display: "flex", gap: "10px" }}>
