@@ -60,6 +60,7 @@ function App() {
       setPage("perplexity");
     } else if (engine === "ChatGptPro") {
       setPage("chatgpt");
+
     } else if (engine === "Cplt") {
       setPage("copilot");
     } else if (engine === "ClaudeSonnet" || engine === "ClaudeOpus") {
