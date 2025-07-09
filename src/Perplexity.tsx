@@ -74,64 +74,183 @@ function Perplexity({
     }
   }, [OID]);
 
+  // const runAutomation = async () => {
+  //   if (queryData?.Query) {
+  //     try {
+  //       setIsAutomationRunning(true);
+  //       const [tab] = await chrome.tabs.query({
+  //         active: true,
+  //         currentWindow: true,
+  //       });
+  //       if (tab?.id) {
+  //         const query = queryData.Query;
+  //         await chrome.scripting.executeScript({
+  //           target: { tabId: tab.id },
+  //           func: (query: string) => {
+  //             const delay = (ms: number) =>
+  //               new Promise((res) => setTimeout(res, ms));
+  //             const simulateUserFlow = async () => {
+  //               const newChatBtn = document.querySelector(
+  //                 'button[data-testid="sidebar-new-thread"]'
+  //               ) as HTMLElement | null;
+
+  //               console.log("new chat btn",newChatBtn)
+
+  //               if (newChatBtn) {
+  //                 const rect = newChatBtn.getBoundingClientRect();
+  //                 const isVisible = rect.width > 0 && rect.height > 0;
+  //                 console.group("isvisible",isVisible)
+
+  //                 if (isVisible) {
+  //                   console.log("✅ Clicking New Chat button...");
+  //                   newChatBtn.click();
+  //                   await delay(1000);
+  //                 } else {
+  //                   console.warn("⚠️ New Chat button found but not visible.");
+  //                 }
+  //               } else {
+  //                 console.error("❌ New Chat button not found.");
+  //               }
+
+  //               const inputDiv = document.querySelector(
+  //                 "#ask-input"
+  //               ) as HTMLElement | null;
+
+  //               if (inputDiv) {
+  //                 inputDiv.focus();
+  //                 const event = new InputEvent("input", {
+  //                   bubbles: true,
+  //                   cancelable: true,
+  //                   inputType: "insertText",
+  //                   data: query,
+  //                 });
+  //                 inputDiv.dispatchEvent(event);
+  //                 await delay(500);
+  //               }
+
+  //               const submitBtn = document.querySelector(
+  //                 'button[data-testid="submit-button"]'
+  //               ) as HTMLButtonElement;
+
+  //               if (submitBtn && !submitBtn.disabled) {
+  //                 submitBtn.click();
+  //               }
+  //             };
+  //             simulateUserFlow();
+  //           },
+  //           args: [query],
+  //         });
+  //       }
+  //     } catch (error: any) {
+  //       console.error("Automation error:", error);
+  //     }
+  //   }
+  // };
+
+
   const runAutomation = async () => {
-    if (queryData?.Query) {
-      try {
-        setIsAutomationRunning(true);
-        const [tab] = await chrome.tabs.query({
-          active: true,
-          currentWindow: true,
-        });
-        if (tab?.id) {
-          const query = queryData.Query;
-          await chrome.scripting.executeScript({
-            target: { tabId: tab.id },
-            func: (query: string) => {
-              const delay = (ms: number) =>
-                new Promise((res) => setTimeout(res, ms));
-              const simulateUserFlow = async () => {
-                const newChatBtn = document.querySelector(
-                  'button[class*="bg-offsetPlus"][class*="dark:bg-offsetPlusDark"]'
-                ) as HTMLElement;
-                if (newChatBtn) {
-                  newChatBtn.click();
-                  await delay(1000);
-                }
+  if (!queryData?.Query) return;
 
-                const inputDiv = document.querySelector(
-                  "#ask-input"
-                ) as HTMLElement | null;
+  try {
+    setIsAutomationRunning(true);
 
-                if (inputDiv) {
-                  inputDiv.focus();
-                  const event = new InputEvent("input", {
-                    bubbles: true,
-                    cancelable: true,
-                    inputType: "insertText",
-                    data: query,
-                  });
-                  inputDiv.dispatchEvent(event);
-                  await delay(500);
-                }
+    const [tab] = await chrome.tabs.query({
+      active: true,
+      currentWindow: true,
+    });
 
-                const submitBtn = document.querySelector(
-                  'button[data-testid="submit-button"]'
-                ) as HTMLButtonElement;
+    if (!tab?.id) return;
 
-                if (submitBtn && !submitBtn.disabled) {
-                  submitBtn.click();
-                }
-              };
-              simulateUserFlow();
-            },
-            args: [query],
-          });
+    const tabId = tab.id;
+    const query = queryData.Query;
+
+    // ✅ Step 1: Reload the tab
+    await chrome.tabs.reload(tabId);
+    console.log("🔄 Tab reloaded. Waiting for load...");
+
+    // ✅ Step 2: Wait for the tab to fully load
+    await new Promise<void>((resolve) => {
+      const onUpdated = (
+        updatedTabId: number,
+        changeInfo: chrome.tabs.TabChangeInfo
+      ) => {
+        if (updatedTabId === tabId && changeInfo.status === "complete") {
+          chrome.tabs.onUpdated.removeListener(onUpdated);
+          console.log("✅ Page fully loaded");
+          resolve();
         }
-      } catch (error: any) {
-        console.error("Automation error:", error);
-      }
-    }
-  };
+      };
+
+      chrome.tabs.onUpdated.addListener(onUpdated);
+    });
+
+    // ✅ Step 3: Inject the automation script
+    await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (query: string) => {
+        const delay = (ms: number) =>
+          new Promise((res) => setTimeout(res, ms));
+
+        const simulateUserFlow = async () => {
+          const newChatBtn = document.querySelector(
+            'button[data-testid="sidebar-new-thread"]'
+          ) as HTMLElement | null;
+
+          console.log("🔍 New chat button:", newChatBtn);
+
+          if (newChatBtn) {
+            const rect = newChatBtn.getBoundingClientRect();
+            const isVisible = rect.width > 0 && rect.height > 0;
+
+            console.log("📏 Button visibility:", isVisible);
+
+            if (isVisible) {
+              console.log("✅ Clicking New Chat button...");
+              newChatBtn.click();
+              await delay(1000);
+            } else {
+              console.warn("⚠️ New Chat button found but not visible.");
+            }
+          } else {
+            console.error("❌ New Chat button not found.");
+          }
+
+          const inputDiv = document.querySelector(
+            "#ask-input"
+          ) as HTMLElement | null;
+
+          if (inputDiv) {
+            inputDiv.focus();
+            const event = new InputEvent("input", {
+              bubbles: true,
+              cancelable: true,
+              inputType: "insertText",
+              data: query,
+            });
+            inputDiv.dispatchEvent(event);
+            await delay(500);
+          }
+
+          const submitBtn = document.querySelector(
+            'button[data-testid="submit-button"]'
+          ) as HTMLButtonElement | null;
+
+          if (submitBtn && !submitBtn.disabled) {
+            submitBtn.click();
+          }
+        };
+
+        simulateUserFlow();
+      },
+      args: [query],
+    });
+  } catch (error: any) {
+    console.error("🚨 Automation error:", error);
+  } finally {
+    setIsAutomationRunning(false);
+  }
+};
+
 
   const injectScript = async () => {
     const [tab] = await chrome.tabs.query({
@@ -298,8 +417,10 @@ function Perplexity({
         });
 
         // Remove <div> that contains <svg class="tabler-icon tabler-icon-dots">
-        document.querySelectorAll('svg.tabler-icon.tabler-icon-dots').forEach((svg) => {
-          const parentDiv = svg.closest('div');
+        document
+          .querySelectorAll("svg.tabler-icon.tabler-icon-dots")
+          .forEach((svg) => {
+            const parentDiv = svg.closest("div");
             if (parentDiv) {
               parentDiv.remove();
             }
@@ -310,27 +431,31 @@ function Perplexity({
         });
 
         document
-  .querySelectorAll<HTMLElement>('body div[class*="bg-"], body button[class*="bg-"]')
-  .forEach((el) => {
-    const isDiv = el.tagName === "DIV";
-    const hasCodeWrapper = el.className.includes("codeWrapper");
-    const isCodeLanguageIndicator = el.getAttribute("data-testid") === "code-language-indicator";
+          .querySelectorAll<HTMLElement>(
+            'body div[class*="bg-"], body button[class*="bg-"]'
+          )
+          .forEach((el) => {
+            const isDiv = el.tagName === "DIV";
+            const hasCodeWrapper = el.className.includes("codeWrapper");
+            const isCodeLanguageIndicator =
+              el.getAttribute("data-testid") === "code-language-indicator";
 
-    // ❌ Skip if it's a <div> and matches exclusion criteria
-    if (isDiv && (hasCodeWrapper || isCodeLanguageIndicator)) return;
+            // ❌ Skip if it's a <div> and matches exclusion criteria
+            if (isDiv && (hasCodeWrapper || isCodeLanguageIndicator)) return;
 
-    const bg = getComputedStyle(el).backgroundColor;
-    const isTransparent = bg === "rgba(0, 0, 0, 0)" || bg === "transparent";
+            const bg = getComputedStyle(el).backgroundColor;
+            const isTransparent =
+              bg === "rgba(0, 0, 0, 0)" || bg === "transparent";
 
-    el.className = el.className
-      .split(" ")
-      .filter((cls) => !cls.startsWith("bg-") && !cls.includes(":bg-"))
-      .join(" ");
+            el.className = el.className
+              .split(" ")
+              .filter((cls) => !cls.startsWith("bg-") && !cls.includes(":bg-"))
+              .join(" ");
 
-    if (!isTransparent) {
-      el.style.backgroundColor = "#fff";
-    }
-  });
+            if (!isTransparent) {
+              el.style.backgroundColor = "#fff";
+            }
+          });
 
         //Removed dots
 
@@ -339,23 +464,25 @@ function Perplexity({
         ) as HTMLElement | null;
         dotsIcon?.remove();
 
-         const repeatIcon = document.querySelector(
+        const repeatIcon = document.querySelector(
           ".tabler-icon.tabler-icon-repeat"
         ) as HTMLElement | null;
-        if(repeatIcon) repeatIcon?.remove();
+        if (repeatIcon) repeatIcon?.remove();
 
-          const shareIcon = document.querySelector(
+        const shareIcon = document.querySelector(
           ".tabler-icon.tabler-icon-share-3"
         ) as HTMLElement | null;
-        if(shareIcon) shareIcon?.remove();
+        if (shareIcon) shareIcon?.remove();
 
         [
           ...document.querySelectorAll("div.-mx-sm.gap-xs.relative.flex"),
           ...document.querySelectorAll("div.gap-sm.grid.grid-cols-4.md\\:px-0"),
         ].forEach((el) => el.remove());
 
-        const relatedContainer =  document.querySelector(".animate-in.fade-in.duration-100.ease-out.border-borderMain\\/50.ring-borderMain\\/50.divide-borderMain\\/50.dark\\:divide-borderMainDark\\/50.dark\\:ring-borderMainDark\\/50.dark\\:border-borderMainDark\\/50.bg-transparent");
-        if(relatedContainer) {
+        const relatedContainer = document.querySelector(
+          ".animate-in.fade-in.duration-100.ease-out.border-borderMain\\/50.ring-borderMain\\/50.divide-borderMain\\/50.dark\\:divide-borderMainDark\\/50.dark\\:ring-borderMainDark\\/50.dark\\:border-borderMainDark\\/50.bg-transparent"
+        );
+        if (relatedContainer) {
           relatedContainer.remove();
         }
       },
@@ -506,7 +633,6 @@ function Perplexity({
     setIsAutomationRunning(false);
     await triggerExtract();
   };
-
 
   return (
     <div className="query-details-container">
