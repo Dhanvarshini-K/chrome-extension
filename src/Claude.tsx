@@ -17,7 +17,7 @@ import { handleScreenshot } from "./utils/screenshotUtils";
 import { saveOrUpdate } from "./utils";
 import "./Perplexity.css";
 import { extractIdFromPathForClaude } from "./helpers/chatgpt/extractId";
-import { getStorage } from "./utils/localStorage";
+// import { getStorage } from "./utils/localStorage";
 
 type ExtractedData = {
   html: string;
@@ -328,43 +328,157 @@ function Claude({
       setIsAutomationRunning(false);
     }
   };
-const triggerExtractResponse = async () => {
-  const [tab] = await chrome.tabs.query({
-    active: true,
-    currentWindow: true,
-  });
+  const triggerExtractResponse = async () => {
+    const [tab] = await chrome.tabs.query({
+      active: true,
+      currentWindow: true,
+    });
 
-  if (!tab?.id) {
-    console.error("No active tab found");
-    return;
-  }
+    if (!tab?.id) {
+      console.error("No active tab found");
+      return;
+    }
 
-  const { extractDocument } = await getStorage(["extractDocument"]);
-  const isExtractDoc = extractDocument === true || extractDocument === "true";
+    //============== iframe =============
 
-  if (!isExtractDoc) {
-    // 👇 Normal Claude response extraction from main frame
+    // const { extractCodeBlock } = await getStorage(["extractCodeBlock"]);
+    // const isExtractCodeBlock = extractCodeBlock === true || extractCodeBlock === "true";
+
+    // if (!isExtractCodeBlock) {
+    //   // 👇 Normal Claude response extraction from main frame
+    //   chrome.scripting.executeScript(
+    //     {
+    //       target: { tabId: tab.id },
+    //       func: () => {
+    //         try {
+    //           const parent = document.querySelector(
+    //             'div[class^="font-claude-message"]'
+    //           ) as HTMLElement;
+    //           if (!parent) return "No content found";
+
+    //           const divs = Array.from(parent.children).filter(
+    //             (child) =>
+    //               child.tagName.toLowerCase() === "div" &&
+    //               !child.classList.contains("transition-all")
+    //           );
+
+    //           const htmlList = divs.map((div) => div.outerHTML);
+    //           console.log("Extracted Claude divs:", htmlList);
+    //           return htmlList;
+    //         } catch (e: any) {
+    //           return `Error: ${e.message}`;
+    //         }
+    //       },
+    //     },
+    //     (injectionResults) => {
+    //       if (chrome.runtime.lastError) {
+    //         console.error("Injection error:", chrome.runtime.lastError.message);
+    //         return;
+    //       }
+
+    //       const result = injectionResults?.[0]?.result;
+    //       const html = Array.isArray(result)
+    //         ? result.join("\n")
+    //         : typeof result === "string"
+    //         ? result
+    //         : "";
+
+    //       setData({ html, text: "" });
+    //     }
+    //   );
+    //   return;
+    // }
+
+    // 👇 Document extract mode (from iframe) ==> for UI
+    // chrome.webNavigation.getAllFrames({ tabId: tab.id }, (frames) => {
+    //   if (!frames || !Array.isArray(frames)) {
+    //     console.error("No frames found or frames is not an array");
+    //     return;
+    //   }
+
+    //   const targetFrame = frames.find((f) =>
+    //     f.url.includes("claudeusercontent.com")
+    //   );
+
+    //   if (!targetFrame) {
+    //     console.error("Claude iframe not found");
+    //     return;
+    //   }
+
+    //   chrome.scripting.executeScript(
+    //     {
+    //       target: { tabId: tab.id!, frameIds: [targetFrame.frameId] },
+    //       func: () => {
+    //         try {
+    //           const parent = document.querySelector(
+    //             "#artifacts-component-root-react"
+    //           ) as HTMLElement;
+    //           if (!parent) return "No content found";
+
+    //           const innerDiv = parent.querySelector("div");
+    //           if (!innerDiv) return "No inner div found";
+
+    //           console.log("Extracted document div:", innerDiv.outerHTML);
+    //           return [innerDiv.outerHTML];
+    //         } catch (e: any) {
+    //           return `Error: ${e.message}`;
+    //         }
+    //       },
+    //     },
+    //     (injectionResults) => {
+    //       if (chrome.runtime.lastError) {
+    //         console.error(
+    //           "Injection error (iframe):",
+    //           chrome.runtime.lastError.message
+    //         );
+    //         return;
+    //       }
+
+    //       const result = injectionResults?.[0]?.result;
+    //       const html = Array.isArray(result)
+    //         ? result.join("\n")
+    //         : typeof result === "string"
+    //         ? result
+    //         : "";
+
+    //       setData({ html, text: "" });
+    //     }
+    //   );
+    // });
+    //============== iframe =============
+
+    //===================== code block with response ================
     chrome.scripting.executeScript(
       {
         target: { tabId: tab.id },
         func: () => {
           try {
-            const parent = document.querySelector(
-              'div[class^="font-claude-message"]'
-            ) as HTMLElement;
-            if (!parent) return "No content found";
+            // 1. Extract first div from .font-claude-message (excluding transition-all)
+            const claudeContainer = document.querySelector(
+              "div.font-claude-message"
+            ) as HTMLElement | null;
+            let messageHTML = "";
 
-            const divs = Array.from(parent.children).filter(
-              (child) =>
-                child.tagName.toLowerCase() === "div" &&
-                !child.classList.contains("transition-all")
-            );
+            if (claudeContainer) {
+              const filteredChildren = Array.from(
+                claudeContainer.children
+              ).filter(
+                (child): child is HTMLElement =>
+                  child.tagName.toLowerCase() === "div" &&
+                  !child.classList.contains("transition-all")
+              );
 
-            const htmlList = divs.map((div) => div.outerHTML);
-            console.log("Extracted Claude divs:", htmlList);
-            return htmlList;
+              const htmlList = filteredChildren.map((div) => div.outerHTML);
+              messageHTML = htmlList.join("\n");
+            }
+
+            // 2. Extract first code block
+            const codeDiv = document.querySelector("div.code-block__code");
+            const codeHTML = codeDiv?.outerHTML || "";
+
+            return { messageHTML, codeHTML };
           } catch (e: any) {
-            return `Error: ${e.message}`;
+            return { error: e.message };
           }
         },
       },
@@ -375,77 +489,33 @@ const triggerExtractResponse = async () => {
         }
 
         const result = injectionResults?.[0]?.result;
-        const html = Array.isArray(result)
-          ? result.join("\n")
-          : typeof result === "string"
-          ? result
-          : "";
+        console.log("response result", result);
 
-        setData({ html, text: "" });
-      }
-    );
-    return;
-  }
-
-  // 👇 Document extract mode (from iframe)
-  chrome.webNavigation.getAllFrames({ tabId: tab.id }, (frames) => {
-    if (!frames || !Array.isArray(frames)) {
-      console.error("No frames found or frames is not an array");
-      return;
-    }
-
-    const targetFrame = frames.find((f) =>
-      f.url.includes("claudeusercontent.com")
-    );
-
-    if (!targetFrame) {
-      console.error("Claude iframe not found");
-      return;
-    }
-
-    chrome.scripting.executeScript(
-      {
-        target: { tabId: tab.id!, frameIds: [targetFrame.frameId] },
-        func: () => {
-          try {
-            const parent = document.querySelector(
-              "#artifacts-component-root-react"
-            ) as HTMLElement;
-            if (!parent) return "No content found";
-
-            const innerDiv = parent.querySelector("div");
-            if (!innerDiv) return "No inner div found";
-
-            console.log("Extracted document div:", innerDiv.outerHTML);
-            return [innerDiv.outerHTML];
-          } catch (e: any) {
-            return `Error: ${e.message}`;
-          }
-        },
-      },
-      (injectionResults) => {
-        if (chrome.runtime.lastError) {
-          console.error(
-            "Injection error (iframe):",
-            chrome.runtime.lastError.message
-          );
+        if (result?.error) {
+          console.error("Extraction error:", result.error);
           return;
         }
 
-        const result = injectionResults?.[0]?.result;
-        const html = Array.isArray(result)
-          ? result.join("\n")
-          : typeof result === "string"
-          ? result
-          : "";
+        const html = [result?.messageHTML, result?.codeHTML]
+          // .filter(Boolean)
+          .join("\n");
+
+        const expectedHtml = [result?.messageHTML, result?.codeHTML].join("\n");
+        const isExactMatch = html === expectedHtml;
+
+        if (!isExactMatch) {
+          console.warn(
+            "Combined HTML does NOT exactly match expected concatenation."
+          );
+        } else {
+          console.log("Exact match confirmed.");
+        }
 
         setData({ html, text: "" });
       }
     );
-  });
-};
-
-
+    //===================== code block with response ================
+  };
 
   const triggerExtractCitations = async () => {
     const [tab] = await chrome.tabs.query({
