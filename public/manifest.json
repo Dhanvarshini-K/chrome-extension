@@ -1,15 +1,15 @@
 {
   "manifest_version": 3,
   "name": "NUI Extractor",
-  "version": "8.5.1",
+  "version": "8.5.4",
   "description": "A Chrome extension that integrates with ChatGPT, Perplexity, Copilot, Claude and BIC to provide AI-powered assistance. Automated the query execution, extracted citations, removed irrelevant elements from the page, added a screenshot capture feature and Changed the remove div as JSON format.",
-  "permissions": ["storage","scripting", "activeTab", "sidePanel", "tabs"],
+  "permissions": ["storage","scripting", "activeTab", "sidePanel", "tabs","webNavigation"],
   "background": {
     "service_worker": "background.js"
   },
   "content_scripts": [
     {
-      "matches": ["<all_urls>"],
+      "matches": ["<all_urls>",  "https://www.claudeusercontent.com/*"],
       "js": ["content.js"],
       "run_at": "document_idle"
     }
@@ -20,7 +20,7 @@
       "matches": ["<all_urls>"]
     }
   ],
-  "host_permissions": ["<all_urls>"],
+  "host_permissions": ["<all_urls>",  "https://www.claudeusercontent.com/*"],
   "side_panel": {
     "default_path": "sidePanel.html",
     "default_icon" : "numenticaUIHeaderLogo.svg"
