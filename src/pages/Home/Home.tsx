@@ -19,7 +19,7 @@ const Home = ({ goQueryList, refreshQueryData }: HomeProps) => {
   const [error, setError] = useState("");
   const [submitted, setSubmitted] = useState(false);
 
-  const [extractDocument, setExtractDocument] = useState(false);
+  const [extractCodeBlock, setExtractCodeBlock] = useState(false);
 
   const isSubmitDisabled = !agent || !engine || !file;
 
@@ -33,7 +33,7 @@ const Home = ({ goQueryList, refreshQueryData }: HomeProps) => {
           "fileType",
           "submitted",
           "fileName",
-          "extractDocument",
+          "extractCodeBlock",
         ]);
 
       if (fileName && fileType) {
@@ -43,8 +43,8 @@ const Home = ({ goQueryList, refreshQueryData }: HomeProps) => {
       if (taskId) setTaskId(taskId);
       if (engine) setEngine(engine as AIEngine); // :white_check_mark: Cast if engine is typed enum or union
       if (submitted) setSubmitted(submitted); // Ensures boolean
-      if (extractDocument !== undefined) {
-        setExtractDocument(String(extractDocument) === "true");
+      if (extractCodeBlock !== undefined) {
+        setExtractCodeBlock(String(extractCodeBlock) === "true");
       }
     })();
   }, []);
@@ -121,7 +121,7 @@ const Home = ({ goQueryList, refreshQueryData }: HomeProps) => {
         fileType: file.type,
         submitted: "true",
         fileName: file.name,
-        extractDocument: extractDocument.toString(), // or `"true"` / `"false"`
+        extractDocument: extractCodeBlock.toString(), // or `"true"` / `"false"`
       });
 
       setSubmitted(true);
@@ -188,15 +188,15 @@ const Home = ({ goQueryList, refreshQueryData }: HomeProps) => {
               </select>
             </div>
 
-            <label className="checkbox-label">
+            {/* <label className="checkbox-label">
               <input
                 type="checkbox"
-                checked={extractDocument}
-                onChange={(e) => setExtractDocument(e.target.checked)}
+                checked={extractCodeBlock}
+                onChange={(e) => setExtractCodeBlock(e.target.checked)}
                 className="checkbox-input"
               />
               Enable Extract Document
-            </label>
+            </label> */}
 
             <input
               type="file"
