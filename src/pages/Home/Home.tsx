@@ -11,7 +11,7 @@ interface HomeProps {
   refreshQueryData: () => Promise<void>;
 }
 
-const Home = ({ goQueryList,refreshQueryData }: HomeProps) => {
+const Home = ({ goQueryList, refreshQueryData }: HomeProps) => {
   const [agent, setAgent] = useState("");
   const [taskId, setTaskId] = useState("");
   const [engine, setEngine] = useState<AIEngine>(AIEngine.ChatGPT);
@@ -19,8 +19,9 @@ const Home = ({ goQueryList,refreshQueryData }: HomeProps) => {
   const [error, setError] = useState("");
   const [submitted, setSubmitted] = useState(false);
 
-  const isSubmitDisabled = !agent || !engine || !file;
+  const [extractDocument, setExtractDocument] = useState(false);
 
+  const isSubmitDisabled = !agent || !engine || !file;
 
   useEffect(() => {
     (async () => {
@@ -32,6 +33,7 @@ const Home = ({ goQueryList,refreshQueryData }: HomeProps) => {
           "fileType",
           "submitted",
           "fileName",
+          "extractDocument",
         ]);
 
       if (fileName && fileType) {
@@ -41,6 +43,9 @@ const Home = ({ goQueryList,refreshQueryData }: HomeProps) => {
       if (taskId) setTaskId(taskId);
       if (engine) setEngine(engine as AIEngine); // :white_check_mark: Cast if engine is typed enum or union
       if (submitted) setSubmitted(submitted); // Ensures boolean
+      if (extractDocument !== undefined) {
+        setExtractDocument(String(extractDocument) === "true");
+      }
     })();
   }, []);
 
@@ -90,11 +95,11 @@ const Home = ({ goQueryList,refreshQueryData }: HomeProps) => {
 
       const dataObjects = lines.slice(1).map((line) => {
         const columns = line.split("\t").map((col) => col.trim());
-        
+
         return {
           TaskID: taskId,
           OID: columns[oidIndex],
-          Query:cleanQuery(columns[queryIndex]),
+          Query: cleanQuery(columns[queryIndex]),
           QueryID: columns[oidIndex],
           Agent: agent,
           Engine: engine,
@@ -103,7 +108,7 @@ const Home = ({ goQueryList,refreshQueryData }: HomeProps) => {
         };
       });
 
-      const validData = dataObjects.filter(row => row.OID);
+      const validData = dataObjects.filter((row) => row.OID);
 
       setCSVData(validData);
       await createTableAndSaveData(validData);
@@ -116,6 +121,7 @@ const Home = ({ goQueryList,refreshQueryData }: HomeProps) => {
         fileType: file.type,
         submitted: "true",
         fileName: file.name,
+        extractDocument: extractDocument.toString(), // or `"true"` / `"false"`
       });
 
       setSubmitted(true);
@@ -181,6 +187,16 @@ const Home = ({ goQueryList,refreshQueryData }: HomeProps) => {
                 <option value={AIEngine.ClaudeO}>Claude Opus</option>
               </select>
             </div>
+
+            <label className="checkbox-label">
+              <input
+                type="checkbox"
+                checked={extractDocument}
+                onChange={(e) => setExtractDocument(e.target.checked)}
+                className="checkbox-input"
+              />
+              Enable Extract Document
+            </label>
 
             <input
               type="file"

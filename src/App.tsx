@@ -63,7 +63,7 @@ function App() {
 
     } else if (engine === "Cplt") {
       setPage("copilot");
-    } else if (engine === "ClaudeSonnet" || engine === "ClaudeOpus") {
+    } else if (engine === "ClaudeS" || engine === "ClaudeO") {
       setPage("claude");
     } else {
       setPage("BIC");

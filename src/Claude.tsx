@@ -17,6 +17,7 @@ import { handleScreenshot } from "./utils/screenshotUtils";
 import { saveOrUpdate } from "./utils";
 import "./Perplexity.css";
 import { extractIdFromPathForClaude } from "./helpers/chatgpt/extractId";
+import { getStorage } from "./utils/localStorage";
 
 type ExtractedData = {
   html: string;
@@ -113,113 +114,244 @@ function Claude({
   }, []);
 
   const runAutomation = async () => {
-    if (mode) {
-      if (queryData?.Query) {
-        try {
-          setIsAutomationRunning(true);
-          const [tab] = await chrome.tabs.query({
-            active: true,
-            currentWindow: true,
-          });
-          if (tab?.id) {
-            const query = queryData.Query;
-            await chrome.scripting.executeScript({
-              target: { tabId: tab.id },
-              func: (query: string) => {
-                const delay = (ms: number) =>
-                  new Promise((res) => setTimeout(res, ms));
-                const simulateUserFlow = async () => {
-                  const sidebar = document.querySelector(
-                    'button[aria-label="Sidebar"]'
-                  ) as HTMLButtonElement;
-                  if (sidebar) {
-                    sidebar.click();
-                    await delay(1000);
-                  }
-                  const newChatDiv = document.querySelector(
-                    'div a[aria-label="New chat"]'
-                  ) as HTMLElement;
-                  console.log("newChatDiv", newChatDiv);
-                  if (newChatDiv) {
-                    newChatDiv.click();
-                    await delay(1000);
-                    console.log("clicked newchat");
-                  }
+    if (!mode) return;
+    if (!queryData?.Query) return;
 
-                  const inputDiv = document.querySelector(
-                    'div[aria-label="Write your prompt to Claude"] p[data-placeholder="How can I help you today?"]'
-                  ) as HTMLElement | null;
+    try {
+      setIsAutomationRunning(true);
 
-                  console.log("inputDiv", inputDiv);
-
-                  //   if (inputDiv) {
-                  //     inputDiv.focus();
-                  //     const event = new InputEvent("input", {
-                  //       bubbles: true,
-                  //       cancelable: true,
-                  //       inputType: "insertText",
-                  //       data: query,
-                  //     });
-                  //     inputDiv.dispatchEvent(event);
-                  //     await delay(500);
-                  //   }
-
-                  if (inputDiv) {
-                    inputDiv.focus();
-                    inputDiv.textContent = query; // Set the value directly
-
-                    const inputEvent = new Event("input", { bubbles: true });
-                    inputDiv.dispatchEvent(inputEvent);
-
-                    const changeEvent = new Event("change", { bubbles: true });
-                    inputDiv.dispatchEvent(changeEvent);
-
-                    const keyupEvent = new KeyboardEvent("keyup", {
-                      bubbles: true,
-                      cancelable: true,
-                      key: "Enter",
-                      code: "Enter",
-                      keyCode: 13,
-                    });
-                    inputDiv.dispatchEvent(keyupEvent);
-
-                    await delay(500);
-                  }
-
-                  const submitBtn = document.querySelector(
-                    'button[aria-label="Send message"]'
-                  ) as HTMLButtonElement;
-
-                  if (submitBtn && !submitBtn.disabled) {
-                    submitBtn.click();
-                  }
-                };
-                simulateUserFlow();
-              },
-              args: [query],
-            });
-          }
-        } catch (error: any) {
-          console.error("Automation error:", error);
-        }
+      const [tab] = await chrome.tabs.query({
+        active: true,
+        currentWindow: true,
+      });
+      if (!tab?.id) {
+        console.error("[Automation] No active tab found");
+        setIsAutomationRunning(false);
+        return;
       }
+
+      const query = queryData.Query;
+
+      await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        func: async (query: string, engine: string) => {
+          const delay = (ms: number) =>
+            new Promise((res) => setTimeout(res, ms));
+
+          console.log("[Automation] Starting simulateUserFlow...");
+
+          async function clickModelSelectorAndWaitForDropdown() {
+            const containerDiv = document.querySelector(
+              "div#radix-«r16v»"
+            ) as HTMLElement | null;
+            const modelSelectorBtn = document.querySelector(
+              'button[data-testid="model-selector-dropdown"]'
+            ) as HTMLElement | null;
+
+            if (!containerDiv && !modelSelectorBtn) {
+              console.log(
+                "[Automation] Neither container div nor button found"
+              );
+              return false;
+            }
+
+            if (containerDiv) {
+              containerDiv.click();
+              console.log("[Automation] Clicked container div");
+              await delay(300);
+            }
+
+            if (modelSelectorBtn) {
+              modelSelectorBtn.dispatchEvent(
+                new PointerEvent("pointerdown", { bubbles: true })
+              );
+              modelSelectorBtn.dispatchEvent(
+                new PointerEvent("pointerup", { bubbles: true })
+              );
+              modelSelectorBtn.click();
+              console.log(
+                "[Automation] Fired pointerdown, pointerup, and click on button"
+              );
+            }
+
+            const dropdownSelector = 'div[role="menu"]';
+            let tries = 0;
+            while (tries < 20) {
+              const dropdown = document.querySelector(dropdownSelector);
+              if (dropdown && dropdown.getAttribute("data-state") === "open") {
+                console.log("[Automation] Dropdown is open");
+                return true;
+              }
+              await delay(200);
+              tries++;
+            }
+
+            const dropdown = document.querySelector(dropdownSelector);
+            if (dropdown) {
+              console.log(
+                "[Automation] Dropdown exists but data-state:",
+                dropdown.getAttribute("data-state")
+              );
+              console.log(
+                "[Automation] Dropdown CSS display:",
+                getComputedStyle(dropdown).display
+              );
+            } else {
+              console.log("[Automation] Dropdown does not exist in DOM");
+            }
+
+            return false;
+          }
+
+          // Step 1: Click sidebar
+          const sidebar = document.querySelector(
+            'button[aria-label="Sidebar"]'
+          ) as HTMLButtonElement;
+          if (sidebar) {
+            sidebar.click();
+            console.log("[Automation] Sidebar clicked");
+            await delay(1000);
+          } else {
+            console.log("[Automation] Sidebar not found");
+          }
+
+          // Step 2: Click "New chat"
+          const newChatDiv = document.querySelector(
+            'div a[aria-label="New chat"]'
+          ) as HTMLElement;
+          if (newChatDiv) {
+            newChatDiv.click();
+            console.log("[Automation] New Chat clicked");
+            await delay(1500);
+          } else {
+            console.log("[Automation] New Chat not found");
+          }
+
+          // Step 3: Open model selector dropdown robustly
+          const dropdownOpened = await clickModelSelectorAndWaitForDropdown();
+          if (!dropdownOpened) {
+            console.log(
+              "[Automation] Failed to open model selector dropdown, aborting"
+            );
+            return;
+          }
+
+          // Step 4: Select model based on engine value
+          const engineMap: Record<string, string> = {
+            ClaudeS: "Claude Sonnet 4",
+            ClaudeO: "Claude Opus 4",
+          };
+          const selectedModelName = engineMap[engine] || engine;
+          console.log(
+            `[Automation] Resolved engine "${engine}" to model "${selectedModelName}"`
+          );
+
+          const dropdownMenu = document.querySelector(
+            'div[role="menu"][data-state="open"]'
+          );
+          if (!dropdownMenu) {
+            console.log(
+              "[Automation] Dropdown menu disappeared before selection"
+            );
+            return;
+          }
+
+          const menuItems = Array.from(
+            dropdownMenu.querySelectorAll('[role="menuitem"]') || []
+          );
+          console.log(`[Automation] Found ${menuItems.length} model items`);
+
+          const modelItem = menuItems.find((item) =>
+            item.textContent?.includes(selectedModelName)
+          ) as HTMLElement | undefined;
+
+          if (modelItem) {
+            modelItem.click();
+            console.log(`[Automation] Clicked on model: ${selectedModelName}`);
+            await delay(1500);
+          } else {
+            console.log(
+              `[Automation] Model "${selectedModelName}" not found in dropdown`
+            );
+          }
+
+          // Step 5: Type query
+          const inputDiv = document.querySelector(
+            'div[aria-label="Write your prompt to Claude"] p[data-placeholder="How can I help you today?"]'
+          ) as HTMLElement | null;
+
+          if (inputDiv) {
+            inputDiv.focus();
+            inputDiv.textContent = query;
+            console.log("[Automation] Query inserted into input box");
+
+            inputDiv.dispatchEvent(new Event("input", { bubbles: true }));
+            inputDiv.dispatchEvent(new Event("change", { bubbles: true }));
+
+            inputDiv.dispatchEvent(
+              new KeyboardEvent("keyup", {
+                bubbles: true,
+                cancelable: true,
+                key: "Enter",
+                code: "Enter",
+                keyCode: 13,
+              })
+            );
+
+            await delay(500);
+          } else {
+            console.log("[Automation] Input box not found");
+          }
+
+          // Step 6: Click send
+          const submitBtn = document.querySelector(
+            'button[aria-label="Send message"]'
+          ) as HTMLButtonElement;
+
+          if (submitBtn && !submitBtn.disabled) {
+            submitBtn.click();
+            console.log("[Automation] Send message button clicked");
+          } else {
+            console.log(
+              "[Automation] Send message button not found or disabled"
+            );
+          }
+
+          console.log("[Automation] simulateUserFlow completed");
+        },
+        args: [query, Engine],
+      });
+
+      setIsAutomationRunning(false);
+    } catch (error: any) {
+      console.error("Automation error:", error);
+      setIsAutomationRunning(false);
     }
   };
+const triggerExtractResponse = async () => {
+  const [tab] = await chrome.tabs.query({
+    active: true,
+    currentWindow: true,
+  });
 
-  const triggerExtractResponse = async () => {
-    const [tab] = await chrome.tabs.query({
-      active: true,
-      currentWindow: true,
-    });
+  if (!tab?.id) {
+    console.error("No active tab found");
+    return;
+  }
 
+  const { extractDocument } = await getStorage(["extractDocument"]);
+  const isExtractDoc = extractDocument === true || extractDocument === "true";
+
+  if (!isExtractDoc) {
+    // 👇 Normal Claude response extraction from main frame
     chrome.scripting.executeScript(
       {
-        target: { tabId: tab.id! },
+        target: { tabId: tab.id },
         func: () => {
           try {
             const parent = document.querySelector(
               'div[class^="font-claude-message"]'
-            );
+            ) as HTMLElement;
             if (!parent) return "No content found";
 
             const divs = Array.from(parent.children).filter(
@@ -229,8 +361,7 @@ function Claude({
             );
 
             const htmlList = divs.map((div) => div.outerHTML);
-
-            console.log("Extracted divs:", htmlList);
+            console.log("Extracted Claude divs:", htmlList);
             return htmlList;
           } catch (e: any) {
             return `Error: ${e.message}`;
@@ -243,78 +374,94 @@ function Claude({
           return;
         }
 
-        console.log("injectionResults", injectionResults);
         const result = injectionResults?.[0]?.result;
-
-        // Convert to string safely
-        let html: string;
-
-        if (Array.isArray(result)) {
-          html = result.join("\n"); // join array of strings
-        } else if (typeof result === "string") {
-          html = result;
-        } else {
-          html = ""; // fallback for undefined or unexpected
-        }
+        const html = Array.isArray(result)
+          ? result.join("\n")
+          : typeof result === "string"
+          ? result
+          : "";
 
         setData({ html, text: "" });
       }
     );
-  };
+    return;
+  }
+
+  // 👇 Document extract mode (from iframe)
+  chrome.webNavigation.getAllFrames({ tabId: tab.id }, (frames) => {
+    if (!frames || !Array.isArray(frames)) {
+      console.error("No frames found or frames is not an array");
+      return;
+    }
+
+    const targetFrame = frames.find((f) =>
+      f.url.includes("claudeusercontent.com")
+    );
+
+    if (!targetFrame) {
+      console.error("Claude iframe not found");
+      return;
+    }
+
+    chrome.scripting.executeScript(
+      {
+        target: { tabId: tab.id!, frameIds: [targetFrame.frameId] },
+        func: () => {
+          try {
+            const parent = document.querySelector(
+              "#artifacts-component-root-react"
+            ) as HTMLElement;
+            if (!parent) return "No content found";
+
+            const innerDiv = parent.querySelector("div");
+            if (!innerDiv) return "No inner div found";
+
+            console.log("Extracted document div:", innerDiv.outerHTML);
+            return [innerDiv.outerHTML];
+          } catch (e: any) {
+            return `Error: ${e.message}`;
+          }
+        },
+      },
+      (injectionResults) => {
+        if (chrome.runtime.lastError) {
+          console.error(
+            "Injection error (iframe):",
+            chrome.runtime.lastError.message
+          );
+          return;
+        }
+
+        const result = injectionResults?.[0]?.result;
+        const html = Array.isArray(result)
+          ? result.join("\n")
+          : typeof result === "string"
+          ? result
+          : "";
+
+        setData({ html, text: "" });
+      }
+    );
+  });
+};
+
+
 
   const triggerExtractCitations = async () => {
     const [tab] = await chrome.tabs.query({
       active: true,
       currentWindow: true,
     });
+
     chrome.scripting.executeScript(
       {
         target: { tabId: tab.id! },
-        // func: () => {
-        //   const delay = (ms: number) =>
-        //     new Promise((res) => setTimeout(res, ms));
-        //   const parent = document.querySelector(
-        //     'div[class^="font-claude-message"]'
-        //   );
-        //   if (!parent) return "";
-
-        //   const transitionDivs = parent.querySelectorAll("div.transition-all");
-        //   const links: string[] = [];
-        //   console.log("before - links", links);
-
-        //   transitionDivs.forEach(async (div) => {
-        //     const button = div.querySelector("button");
-        //     if (button) {
-        //       button.click();
-        //       await delay(500);
-        //     }
-
-        //     const anchorElements = div.querySelectorAll("a");
-
-        //     anchorElements.forEach((element) => {
-        //       const anchor = element as HTMLAnchorElement;
-        //       const paragraphs = anchor.querySelectorAll("p");
-        //       console.log("anchor", anchor);
-
-        //       if (paragraphs.length >= 2) {
-        //         const title = paragraphs[0]?.textContent?.trim() || "No Title";
-        //         links.push(`[${title}](${anchor.href})`);
-        //       }
-        //     });
-        //   });
-
-        //   console.log("after - links", links);
-
-        //   return links.join("##NEWLINE##");
-        // },
 
         func: async () => {
-          const delay = (ms: number) =>
-            new Promise((res) => setTimeout(res, ms));
-
           const parent = document.querySelector(
             'div[class^="font-claude-message"]'
           );
+
           if (!parent) return "";
 
           const transitionDivs = parent.querySelectorAll("div.transition-all");
@@ -322,11 +469,11 @@ function Claude({
           console.log("before - links", links);
 
           for (const div of transitionDivs) {
-            const button = div.querySelector("button");
-            if (button) {
-              button.click();
-              await delay(500); // wait for content to load after click
-            }
+            // const button = div.querySelector("button");
+            // if (button) {
+            //   button.click();
+            //   await delay(500); // wait for content to load after click
+            // }
 
             const anchorElements = div.querySelectorAll("a");
 
@@ -347,6 +494,7 @@ function Claude({
           return links.join("##NEWLINE##");
         },
       },
+
       (injectionResults) => {
         const result = injectionResults?.[0]?.result;
         console.log("result", result);
@@ -484,6 +632,8 @@ function Claude({
           "div.h-screen.flex.flex-col.gap-3.pb-2.px-0.fixed.top-0.left-0"
         );
         if (sidebarClass) sidebarClass.remove();
+
+        document.body.style.backgroundColor = "#fff";
       },
     });
   };
