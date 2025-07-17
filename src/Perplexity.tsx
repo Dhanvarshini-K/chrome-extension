@@ -489,6 +489,127 @@ function Perplexity({
     });
   };
 
+
+    const bingUnbranding = async () => {
+    const [tab] = await chrome.tabs.query({
+      active: true,
+      currentWindow: true,
+    });
+
+    chrome.scripting.executeScript({
+      target: { tabId: tab.id! },
+      func: () => {
+        const answerTab = document.querySelector(
+          "button[data-testid='answer-mode-tabs-tab-search']"
+        ) as HTMLButtonElement;
+
+        if (answerTab) {
+          answerTab.click();
+        }
+
+        const targetDivs = [
+          ".animate-in.fade-in.duration-100.ease-out.border-borderMain\\/50.ring-borderMain\\/50.divide-borderMain\\/50.dark\\:divide-borderMainDark\\/50.dark\\:ring-borderMainDark\\/50.dark\\:border-borderMainDark\\/50.bg-transparent",
+          ".table .relative.flex",
+          ".max-w-threadContentWidth .gap-y-sm .min-w-full",
+          ".group\\/sidebar",
+          ".-ml-sm.items-center",
+          ".grow.block",
+          ".h-headerHeight",
+        ];
+
+        targetDivs.forEach((selector) => {
+          const divs = document.querySelector(selector);
+          if (divs) {
+            divs.remove();
+          }
+        });
+
+        const ariaLabelsToRemove = [
+          "Not helpful",
+          "Helpful",
+          "Copy",
+          "Pro Search",
+        ];
+        ariaLabelsToRemove.forEach((label) => {
+          const btn = document.querySelector(`button[aria-label="${label}"]`);
+          if (btn) {
+            btn.remove();
+          }
+        });
+
+        // Remove <div> that contains <svg class="tabler-icon tabler-icon-dots">
+        document
+          .querySelectorAll("svg.tabler-icon.tabler-icon-dots")
+          .forEach((svg) => {
+            const parentDiv = svg.closest("div");
+            if (parentDiv) {
+              parentDiv.remove();
+            }
+          });
+
+        document.querySelectorAll("*").forEach((el: any) => {
+          el.style.color = "#555";
+        });
+
+        document
+          .querySelectorAll<HTMLElement>(
+            'body div[class*="bg-"], body button[class*="bg-"]'
+          )
+          .forEach((el) => {
+            const isDiv = el.tagName === "DIV";
+            const hasCodeWrapper = el.className.includes("codeWrapper");
+            const isCodeLanguageIndicator =
+              el.getAttribute("data-testid") === "code-language-indicator";
+
+            // ❌ Skip if it's a <div> and matches exclusion criteria
+            if (isDiv && (hasCodeWrapper || isCodeLanguageIndicator)) return;
+
+            const bg = getComputedStyle(el).backgroundColor;
+            const isTransparent =
+              bg === "rgba(0, 0, 0, 0)" || bg === "transparent";
+
+            el.className = el.className
+              .split(" ")
+              .filter((cls) => !cls.startsWith("bg-") && !cls.includes(":bg-"))
+              .join(" ");
+
+            if (!isTransparent) {
+              el.style.backgroundColor = "#fff";
+            }
+          });
+
+        //Removed dots
+
+        const dotsIcon = document.querySelector(
+          ".tabler-icon.tabler-icon-dots"
+        ) as HTMLElement | null;
+        dotsIcon?.remove();
+
+        const repeatIcon = document.querySelector(
+          ".tabler-icon.tabler-icon-repeat"
+        ) as HTMLElement | null;
+        if (repeatIcon) repeatIcon?.remove();
+
+        const shareIcon = document.querySelector(
+          ".tabler-icon.tabler-icon-share-3"
+        ) as HTMLElement | null;
+        if (shareIcon) shareIcon?.remove();
+
+        [
+          ...document.querySelectorAll("div.-mx-sm.gap-xs.relative.flex"),
+          ...document.querySelectorAll("div.gap-sm.grid.grid-cols-4.md\\:px-0"),
+        ].forEach((el) => el.remove());
+
+        const relatedContainer = document.querySelector(
+          ".animate-in.fade-in.duration-100.ease-out.border-borderMain\\/50.ring-borderMain\\/50.divide-borderMain\\/50.dark\\:divide-borderMainDark\\/50.dark\\:ring-borderMainDark\\/50.dark\\:border-borderMainDark\\/50.bg-transparent"
+        );
+        if (relatedContainer) {
+          relatedContainer.remove();
+        }
+      },
+    });
+  };
+
   const handleTabClick = async (tabName: ResponseTabsType) => {
     if (tabName === ResponseTabs.CITATIONS) {
       setIsCitationsLoading(true);
@@ -703,16 +824,26 @@ function Perplexity({
       <div className="value-container">
         <div style={{ marginBottom: "1rem" }}>
           <Button onClick={removeDiv} className="btn-remove-divs">
-            Remove Related Divs
+            Unbranding
           </Button>
         </div>
 
         <div style={{ marginBottom: "1rem", width: "48%" }}>
-          <Button
-            onClick={() => handleScreenshot(ResponseImage)}
+          {/* <Button
+            onClick={() => handleScreenshot(ResponseImage)
+
+            }
             className="btn-screenshot"
           >
             Screenshot
+          </Button> */}
+
+
+            <Button
+            onClick={bingUnbranding} 
+            className="btn-screenshot"
+          >
+            Bing Unbranding
           </Button>
         </div>
       </div>
