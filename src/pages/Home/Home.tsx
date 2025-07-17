@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import Button from "../../components/Button/Button";
 import "./Home.css";
-import { setCSVData } from "../../utils";
+// import { setCSVData } from "../../utils";
 import { createTableAndSaveData } from "../../utils/indexedDB";
 import { AIEngine } from "../../types";
 import { getStorage, setStorage } from "../../utils/localStorage";
@@ -63,72 +63,137 @@ const Home = ({ goQueryList, refreshQueryData }: HomeProps) => {
     }
   };
 
-  const handleSubmit = () => {
-    if (!file) {
-      setError("Please select a TSV file before submitting.");
-      return;
-    }
+  // const handleSubmit = () => {
+  //   if (!file) {
+  //     setError("Please select a TSV file before submitting.");
+  //     return;
+  //   }
 
-    const reader = new FileReader();
-    reader.onload = async () => {
-      const text = reader.result as string;
-      const lines = text
-        .trim()
-        .split("\n")
-        .filter((line) => line.trim() !== "");
+  //   const reader = new FileReader();
+  //   reader.onload = async () => {
+  //     const text = reader.result as string;
+  //     const lines = text
+  //       .trim()
+  //       .split("\n")
+  //       .filter((line) => line.trim() !== "");
 
-      const headers = lines[0].split("\t").map((h) => h.trim().toLowerCase());
-      const oidIndex = headers.findIndex((h) => h === "oid");
-      const queryIndex = headers.findIndex((h) => h === "query");
+  //     const headers = lines[0].split("\t").map((h) => h.trim().toLowerCase());
+  //     const oidIndex = headers.findIndex((h) => h === "oid");
+  //     const queryIndex = headers.findIndex((h) => h === "query");
 
-      if (oidIndex === -1 || queryIndex === -1) {
-        setError("Required columns 'OID' and 'Query' not found in the file.");
-        return;
+  //     if (oidIndex === -1 || queryIndex === -1) {
+  //       setError("Required columns 'OID' and 'Query' not found in the file.");
+  //       return;
+  //     }
+
+  //     const cleanQuery = (raw: string) => {
+  //       if (raw && raw?.startsWith('"') && raw?.endsWith('"')) {
+  //         raw = raw.slice(1, -1);
+  //       }
+  //       return raw?.replace(/""/g, '"');
+  //     };
+
+  //     const dataObjects = lines.slice(1).map((line) => {
+  //       const columns = line.split("\t").map((col) => col.trim());
+
+  //       return {
+  //         TaskID: taskId,
+  //         OID: columns[oidIndex],
+  //         Query: cleanQuery(columns[queryIndex]),
+  //         QueryID: columns[oidIndex],
+  //         Agent: agent,
+  //         Engine: engine,
+  //         TurnID: "1",
+  //         PerfData: "{}",
+  //       };
+  //     });
+
+  //     const validData = dataObjects.filter((row) => row.OID);
+
+  //     setCSVData(validData);
+  //     await createTableAndSaveData(validData);
+
+  //     await refreshQueryData();
+  //     setStorage({
+  //       agent,
+  //       taskId,
+  //       engine,
+  //       fileType: file.type,
+  //       submitted: "true",
+  //       fileName: file.name,
+  //       extractDocument: extractCodeBlock.toString(), // or `"true"` / `"false"`
+  //     });
+
+  //     setSubmitted(true);
+  //   };
+
+  //   reader.readAsText(file);
+  // };
+
+
+const handleSubmit = () => {
+  if (!file) {
+    setError("Please select a TSV file before submitting.");
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = async () => {
+    const text = reader.result as string;
+    const lines = text
+      .trim()
+      .split("\n")
+      .filter((line) => line.trim() !== "");
+
+    const headers = lines[0].split("\t").map((h) => h.trim());
+    console.log("📋 Headers in TSV file:", headers);
+
+    const cleanValue = (raw: string) => {
+      if (raw?.startsWith('"') && raw?.endsWith('"')) {
+        raw = raw.slice(1, -1);
       }
-
-      const cleanQuery = (raw: string) => {
-        if (raw && raw?.startsWith('"') && raw?.endsWith('"')) {
-          raw = raw.slice(1, -1);
-        }
-        return raw?.replace(/""/g, '"');
-      };
-
-      const dataObjects = lines.slice(1).map((line) => {
-        const columns = line.split("\t").map((col) => col.trim());
-
-        return {
-          TaskID: taskId,
-          OID: columns[oidIndex],
-          Query: cleanQuery(columns[queryIndex]),
-          QueryID: columns[oidIndex],
-          Agent: agent,
-          Engine: engine,
-          TurnID: "1",
-          PerfData: "{}",
-        };
-      });
-
-      const validData = dataObjects.filter((row) => row.OID);
-
-      setCSVData(validData);
-      await createTableAndSaveData(validData);
-
-      await refreshQueryData();
-      setStorage({
-        agent,
-        taskId,
-        engine,
-        fileType: file.type,
-        submitted: "true",
-        fileName: file.name,
-        extractDocument: extractCodeBlock.toString(), // or `"true"` / `"false"`
-      });
-
-      setSubmitted(true);
+      return raw?.replace(/""/g, '"');
     };
 
-    reader.readAsText(file);
+    const dataObjects = lines.slice(1).map((line) => {
+      const columns = line.split("\t").map((col) => col.trim());
+
+      const row: Record<string, string> = {};
+      headers.forEach((header, index) => {
+        row[header] = cleanValue(columns[index] ?? "");
+      });
+
+      return {
+        TaskID: taskId,
+        Agent: agent,
+        Engine: engine,
+        TurnID: "1",
+        PerfData: "{}",
+        ...row,
+        QueryID: row["oid"] ?? row["OID"] ?? "", // fallback
+      };
+    });
+
+    const validData = dataObjects.filter((row) => Object.keys(row).length > 0);
+
+    // setCSVData(validData);
+    await createTableAndSaveData(validData);
+    await refreshQueryData();
+    setStorage({
+      agent,
+      taskId,
+      engine,
+      fileType: file.type,
+      submitted: "true",
+      fileName: file.name,
+      extractDocument: extractCodeBlock.toString(),
+    });
+
+    setSubmitted(true);
   };
+
+  reader.readAsText(file);
+};
 
   return (
     <div className="home-container">

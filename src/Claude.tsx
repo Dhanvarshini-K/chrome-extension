@@ -48,6 +48,7 @@ function Claude({
   //   const [isCitationsLoading, setIsCitationsLoading] = useState(false);
   const [isAutomationRunning, setIsAutomationRunning] = useState(false);
   const [mode, setMode] = useState("");
+  const [selectedOption, setSelectedOption] = useState<string>("");
 
   const [citationsData, setCitationsData] = useState("");
   const [extractedTabs, setExtractedTabs] = useState<
@@ -448,6 +449,154 @@ function Claude({
     //============== iframe =============
 
     //===================== code block with response ================
+    // chrome.scripting.executeScript(
+    //   {
+    //     target: { tabId: tab.id },
+    //     func: () => {
+    //       try {
+    //         // 1. Extract first div from .font-claude-message (excluding transition-all)
+    //         const claudeContainer = document.querySelector(
+    //           "div.font-claude-message"
+    //         ) as HTMLElement | null;
+    //         let messageHTML = "";
+
+    //         if (claudeContainer) {
+    //           const filteredChildren = Array.from(
+    //             claudeContainer.children
+    //           ).filter(
+    //             (child): child is HTMLElement =>
+    //               child.tagName.toLowerCase() === "div" &&
+    //               !child.classList.contains("transition-all")
+    //           );
+
+    //           const htmlList = filteredChildren.map((div) => div.outerHTML);
+    //           messageHTML = htmlList.join("\n");
+    //         }
+
+    //         // 2. Extract first code block
+    //         const codeDiv = document.querySelector("div.code-block__code");
+    //         const codeHTML = codeDiv?.outerHTML || "";
+
+    //         return { messageHTML, codeHTML };
+    //       } catch (e: any) {
+    //         return { error: e.message };
+    //       }
+    //     },
+    //   },
+    //   (injectionResults) => {
+    //     if (chrome.runtime.lastError) {
+    //       console.error("Injection error:", chrome.runtime.lastError.message);
+    //       return;
+    //     }
+
+    //     const result = injectionResults?.[0]?.result;
+    //     console.log("response result", result);
+
+    //     if (result?.error) {
+    //       console.error("Extraction error:", result.error);
+    //       return;
+    //     }
+
+    //     const html = [result?.messageHTML, result?.codeHTML].join("\n");
+
+    //     const expectedHtml = [result?.messageHTML, result?.codeHTML].join("\n");
+    //     const isExactMatch = html === expectedHtml;
+
+    //     if (!isExactMatch) {
+    //       console.warn(
+    //         "Combined HTML does NOT exactly match expected concatenation."
+    //       );
+    //     } else {
+    //       console.log("Exact match confirmed.");
+    //     }
+
+    //     setData({ html, text: "" });
+    //   }
+    // );
+    //===================== code block with response ================
+
+    //===================== code block or response ================
+    // chrome.scripting.executeScript(
+    //   {
+    //     target: { tabId: tab.id },
+    //     args: [selectedOption],
+    //     func: (selected) => {
+    //       try {
+    //         let html = "";
+
+    //         if (selected === "message") {
+    //           const claudeContainer = document.querySelector(
+    //             "div.font-claude-message"
+    //           ) as HTMLElement | null;
+
+    //           if (claudeContainer) {
+    //             const filteredChildren = Array.from(
+    //               claudeContainer.children
+    //             ).filter(
+    //               (child): child is HTMLElement =>
+    //                 child.tagName.toLowerCase() === "div" &&
+    //                 !child.classList.contains("transition-all")
+    //             );
+
+    //             const htmlList = filteredChildren.map((div) => div.outerHTML);
+    //             html = htmlList.join("\n");
+    //           }
+    //         } else if (selected === "code") {
+    //           const codeDiv = document.querySelector("div.code-block__code");
+    //           html = codeDiv?.outerHTML || "";
+    //         } else if (selected === "both") {
+    //           // 1. Extract first div from .font-claude-message (excluding transition-all)
+    //           const claudeContainer = document.querySelector(
+    //             "div.font-claude-message"
+    //           ) as HTMLElement | null;
+    //           let messageHTML = "";
+
+    //           if (claudeContainer) {
+    //             const filteredChildren = Array.from(
+    //               claudeContainer.children
+    //             ).filter(
+    //               (child): child is HTMLElement =>
+    //                 child.tagName.toLowerCase() === "div" &&
+    //                 !child.classList.contains("transition-all")
+    //             );
+
+    //             const htmlList = filteredChildren.map((div) => div.outerHTML);
+    //             messageHTML = htmlList.join("\n");
+    //           }
+
+    //           // 2. Extract first code block
+    //           const codeDiv = document.querySelector("div.code-block__code");
+    //           const codeHTML = codeDiv?.outerHTML || "";
+
+    //           return { messageHTML, codeHTML };
+    //         }
+
+    //         return { html };
+    //       } catch (e: any) {
+    //         return { error: e.message };
+    //       }
+    //     },
+    //   },
+    //   (injectionResults) => {
+    //     if (chrome.runtime.lastError) {
+    //       console.error("Injection error:", chrome.runtime.lastError.message);
+    //       return;
+    //     }
+
+    //     const result = injectionResults?.[0]?.result;
+    //     console.log("response result", result);
+
+    //     if (result?.error) {
+    //       console.error("Extraction error:", result.error);
+    //       return;
+    //     }
+
+    //     setData({ html: result?.html || "", text: "" });
+    //   }
+    // );
+
+    //both/code/message
+
     chrome.scripting.executeScript(
       {
         target: { tabId: tab.id },
@@ -482,6 +631,46 @@ function Claude({
           }
         },
       },
+      // (injectionResults) => {
+      //   if (chrome.runtime.lastError) {
+      //     console.error("Injection error:", chrome.runtime.lastError.message);
+      //     return;
+      //   }
+
+      //   const result = injectionResults?.[0]?.result;
+      //   console.log("response result", result);
+
+      //   if (result?.error) {
+      //     console.error("Extraction error:", result.error);
+      //     return;
+      //   }
+
+      //   if(selectedOption === "both"){
+
+      //   }
+      //   else if(selectedOption === "message"){
+
+      //   }
+      //   else if(selectedOption === "code"){
+
+      //   }
+
+      //   const html = [result?.messageHTML, result?.codeHTML].join("\n");
+
+      //   const expectedHtml = [result?.messageHTML, result?.codeHTML].join("\n");
+      //   const isExactMatch = html === expectedHtml;
+
+      //   if (!isExactMatch) {
+      //     console.warn(
+      //       "Combined HTML does NOT exactly match expected concatenation."
+      //     );
+      //   } else {
+      //     console.log("Exact match confirmed.");
+      //   }
+
+      //   setData({ html, text: "" });
+      // }
+
       (injectionResults) => {
         if (chrome.runtime.lastError) {
           console.error("Injection error:", chrome.runtime.lastError.message);
@@ -496,25 +685,35 @@ function Claude({
           return;
         }
 
-        const html = [result?.messageHTML, result?.codeHTML]
+        let html = "";
+
+        if (selectedOption === "both") {
+          html = [result?.messageHTML, result?.codeHTML]
+            .filter(Boolean)
+            .join("\n");
+        } else if (selectedOption === "message") {
+          html = result?.messageHTML || "";
+        } else if (selectedOption === "code") {
+          html = result?.codeHTML || "";
+        }
+
+        const expectedHtml = [result?.messageHTML, result?.codeHTML]
           // .filter(Boolean)
           .join("\n");
 
-        const expectedHtml = [result?.messageHTML, result?.codeHTML].join("\n");
         const isExactMatch = html === expectedHtml;
 
-        if (!isExactMatch) {
+        if (!isExactMatch && selectedOption === "both") {
           console.warn(
             "Combined HTML does NOT exactly match expected concatenation."
           );
-        } else {
+        } else if (selectedOption === "both") {
           console.log("Exact match confirmed.");
         }
 
         setData({ html, text: "" });
       }
     );
-    //===================== code block with response ================
   };
 
   const triggerExtractCitations = async () => {
@@ -703,6 +902,13 @@ function Claude({
         );
         if (sidebarClass) sidebarClass.remove();
 
+        //header of codeblock
+        document
+          .querySelector(
+            ".pr-2.pl-3.flex.items-center.justify-between.gap-2.select-none.py-2"
+          )
+          ?.remove();
+
         document.body.style.backgroundColor = "#fff";
       },
     });
@@ -852,6 +1058,16 @@ function Claude({
             <CopyButton value={formattedDate} />
           </div>
         </div>
+
+        <div className="field-container">
+          <span className="field-text">Response Image Name:</span>
+          <div className="value-container">
+            <span className="query-field">
+              {ResponseImage.replace(/\.png$/, "")}
+            </span>
+            <CopyButton value={ResponseImage.replace(/\.png$/, "")} />
+          </div>
+        </div>
       </div>
       <div className="value-container">
         <div style={{ marginBottom: "1rem" }}>
@@ -921,28 +1137,72 @@ function Claude({
           </div>
         </>
       ) : (
-        <div className="value-container">
-          <div style={{ width: "47%" }}>
-            <Button
-              onClick={runAutomation}
-              buttonText={"Run Automation"}
-              style={{ marginBottom: "1rem" }}
-              className="btn-run-automation"
-              disabled={isAutomationRunning}
-            />
-          </div>
-          <div style={{ width: "48%" }}>
-            <Button
-              buttonText="Start Extract"
-              onClick={startExtract}
-              style={{ marginBottom: "1rem", width: "45%" }}
-              className="btn-start-extract"
-            />
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
+   <div className="value-container" style={{ flexDirection: "column", gap: "1rem" }}>
+  {/* Run Automation Button */}
+  <div style={{ width: "100%" }}>
+    <Button
+      onClick={runAutomation}
+      buttonText="Run Automation"
+      className="btn-run-automation"
+      style={{ width: "100%" }}
+      disabled={isAutomationRunning}
+    />
+  </div>
 
+  {/* Extract Option and Start Extract - Horizontal layout */}
+  <div
+    style={{
+      display: "flex",
+      gap: "1rem",
+      width: "100%",
+      alignItems: "flex-end",
+    }}
+  >
+    {/* Dropdown */}
+    <div style={{ flex: 1 }}>
+      <label
+        htmlFor="extractType"
+        style={{
+          display: "block",
+          fontWeight: "bold",
+          marginBottom: "0.5rem",
+        }}
+      >
+        Select Extract Type:
+      </label>
+      <select
+        id="extractType"
+        value={selectedOption}
+        onChange={(e) => setSelectedOption(e.target.value)}
+        className="select-extract-option"
+        style={{
+          padding: "0.5rem",
+          fontSize: "1rem",
+          width: "100%",
+        }}
+      >
+        <option value="">-- Choose --</option>
+        <option value="message">Message</option>
+        <option value="code">Code</option>
+        <option value="both">Both</option>
+      </select>
+    </div>
+
+    {/* Start Extract Button */}
+    {selectedOption && (
+      <div style={{ width: "150px" }}>
+        <Button
+          buttonText="Start Extract"
+          onClick={startExtract}
+          className="btn-start-extract"
+          style={{ width: "100%" }}
+        />
+      </div>
+    )}
+  </div>
+</div>
+  )
+}
+</div>);
+}
 export default Claude;

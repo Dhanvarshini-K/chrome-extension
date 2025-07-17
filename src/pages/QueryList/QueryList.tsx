@@ -13,6 +13,7 @@ import { getStorage, removeFromStorage } from "../../utils/localStorage";
 interface QueryListProps {
   data: QueryItem[];
   goHome: () => void;
+  goToValidation: () => void;
   goChat: (item: { OID: string; Query: string; Engine: string }) => void;
   setQueryData: React.Dispatch<React.SetStateAction<QueryItem[]>>;
   refreshQueryData: () => Promise<void>;
@@ -22,6 +23,7 @@ const QueryList: React.FC<QueryListProps> = ({
   data,
   goHome,
   goChat,
+  goToValidation,
   setQueryData,
   refreshQueryData,
 }) => {
@@ -93,7 +95,6 @@ const QueryList: React.FC<QueryListProps> = ({
     return "Completed";
   }, [data]);
 
-
   async function handleExtract() {
     try {
       if (data?.length === 0) {
@@ -130,7 +131,7 @@ const QueryList: React.FC<QueryListProps> = ({
           Query,
           ResponseText,
           ResponseHTML,
-          Sources || "",
+          Sources === "No citations found." ? "" : Sources,
           ResponseImage,
           ResponseCode,
           PerfData,
@@ -181,7 +182,14 @@ const QueryList: React.FC<QueryListProps> = ({
           setIsDeleting(false);
           setShowModal(false);
           await refreshQueryData();
-          await removeFromStorage(["agent", "engine", "taskId", "fileType", "submitted", "fileName"]);
+          await removeFromStorage([
+            "agent",
+            "engine",
+            "taskId",
+            "fileType",
+            "submitted",
+            "fileName",
+          ]);
 
           goHome();
         };
@@ -239,6 +247,7 @@ const QueryList: React.FC<QueryListProps> = ({
 
           {isDropdownOpen && (
             <div className="dropdown-menu">
+              <Button onClick={goToValidation}>Validation</Button>
               <Button onClick={handleExtract}>Extract</Button>
               <Button
                 className="clear-button danger"

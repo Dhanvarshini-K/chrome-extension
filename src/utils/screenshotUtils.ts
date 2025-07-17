@@ -116,6 +116,6 @@ export const stitchAndDownload = async (
   const finalImage = canvas.toDataURL("image/png");
   const link = document.createElement("a");
   link.href = finalImage;
-  link.download = fileName.endsWith(".png") ? fileName : `${fileName}.png`;
+  link.download = fileName.endsWith(".png") ? `${fileName}b` : `${fileName}b.png`;
   link.click();
 };

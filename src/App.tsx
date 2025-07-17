@@ -11,6 +11,7 @@ import Copilot from "./Copilot";
 import { getStorage } from "./utils/localStorage";
 import BingImageCreator from "./BingImageCreator";
 import Claude from "./Claude";
+import Validation from "./Validation";
 
 function App() {
   const [page, setPage] = useState<
@@ -21,6 +22,7 @@ function App() {
     | "copilot"
     | "BIC"
     | "claude"
+    |"validation"
   >("home");
   const [selectedQuery, setSelectedQuery] = useState<QueryFormData | null>(
     null
@@ -52,6 +54,8 @@ function App() {
 
   const goHome = () => setPage("home");
   const goQueryList = () => setPage("queryList");
+  const goToValidation = () => setPage("validation");
+
   const goChat = (item: QueryFormData) => {
     console.log("item", item);
     setSelectedQuery(item);
@@ -65,7 +69,9 @@ function App() {
       setPage("copilot");
     } else if (engine === "ClaudeS" || engine === "ClaudeO") {
       setPage("claude");
-    } else {
+
+    }
+    else {
       setPage("BIC");
     }
   };
@@ -84,8 +90,16 @@ function App() {
             data={queryData}
             setQueryData={setQueryData}
             refreshQueryData={refreshQueryData}
+            goToValidation={goToValidation}
           />
         );
+        case "validation":
+          return(
+            <Validation data={queryData}
+            goQueryList={goQueryList}
+            
+            />
+          );
       case "chatgpt":
         return (
           <Chatgpt
