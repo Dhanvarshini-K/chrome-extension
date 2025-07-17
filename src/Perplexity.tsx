@@ -13,7 +13,6 @@ import {
   type QueryFormData,
   type ResponseTabsType,
 } from "./types";
-import { handleScreenshot } from "./utils/screenshotUtils";
 import { saveOrUpdate } from "./utils";
 import "./Perplexity.css";
 import { FaSpinner } from "react-icons/fa";
@@ -147,110 +146,108 @@ function Perplexity({
   //   }
   // };
 
-
   const runAutomation = async () => {
-  if (!queryData?.Query) return;
+    if (!queryData?.Query) return;
 
-  try {
-    setIsAutomationRunning(true);
+    try {
+      setIsAutomationRunning(true);
 
-    const [tab] = await chrome.tabs.query({
-      active: true,
-      currentWindow: true,
-    });
+      const [tab] = await chrome.tabs.query({
+        active: true,
+        currentWindow: true,
+      });
 
-    if (!tab?.id) return;
+      if (!tab?.id) return;
 
-    const tabId = tab.id;
-    const query = queryData.Query;
+      const tabId = tab.id;
+      const query = queryData.Query;
 
-    // ✅ Step 1: Reload the tab
-    await chrome.tabs.reload(tabId);
-    console.log("🔄 Tab reloaded. Waiting for load...");
+      // ✅ Step 1: Reload the tab
+      await chrome.tabs.reload(tabId);
+      console.log("🔄 Tab reloaded. Waiting for load...");
 
-    // ✅ Step 2: Wait for the tab to fully load
-    await new Promise<void>((resolve) => {
-      const onUpdated = (
-        updatedTabId: number,
-        changeInfo: chrome.tabs.TabChangeInfo
-      ) => {
-        if (updatedTabId === tabId && changeInfo.status === "complete") {
-          chrome.tabs.onUpdated.removeListener(onUpdated);
-          console.log("✅ Page fully loaded");
-          resolve();
-        }
-      };
-
-      chrome.tabs.onUpdated.addListener(onUpdated);
-    });
-
-    // ✅ Step 3: Inject the automation script
-    await chrome.scripting.executeScript({
-      target: { tabId },
-      func: (query: string) => {
-        const delay = (ms: number) =>
-          new Promise((res) => setTimeout(res, ms));
-
-        const simulateUserFlow = async () => {
-          const newChatBtn = document.querySelector(
-            'button[data-testid="sidebar-new-thread"]'
-          ) as HTMLElement | null;
-
-          console.log("🔍 New chat button:", newChatBtn);
-
-          if (newChatBtn) {
-            const rect = newChatBtn.getBoundingClientRect();
-            const isVisible = rect.width > 0 && rect.height > 0;
-
-            console.log("📏 Button visibility:", isVisible);
-
-            if (isVisible) {
-              console.log("✅ Clicking New Chat button...");
-              newChatBtn.click();
-              await delay(1000);
-            } else {
-              console.warn("⚠️ New Chat button found but not visible.");
-            }
-          } else {
-            console.error("❌ New Chat button not found.");
-          }
-
-          const inputDiv = document.querySelector(
-            "#ask-input"
-          ) as HTMLElement | null;
-
-          if (inputDiv) {
-            inputDiv.focus();
-            const event = new InputEvent("input", {
-              bubbles: true,
-              cancelable: true,
-              inputType: "insertText",
-              data: query,
-            });
-            inputDiv.dispatchEvent(event);
-            await delay(500);
-          }
-
-          const submitBtn = document.querySelector(
-            'button[data-testid="submit-button"]'
-          ) as HTMLButtonElement | null;
-
-          if (submitBtn && !submitBtn.disabled) {
-            submitBtn.click();
+      // ✅ Step 2: Wait for the tab to fully load
+      await new Promise<void>((resolve) => {
+        const onUpdated = (
+          updatedTabId: number,
+          changeInfo: chrome.tabs.TabChangeInfo
+        ) => {
+          if (updatedTabId === tabId && changeInfo.status === "complete") {
+            chrome.tabs.onUpdated.removeListener(onUpdated);
+            console.log("✅ Page fully loaded");
+            resolve();
           }
         };
 
-        simulateUserFlow();
-      },
-      args: [query],
-    });
-  } catch (error: any) {
-    console.error("🚨 Automation error:", error);
-  } finally {
-    setIsAutomationRunning(false);
-  }
-};
+        chrome.tabs.onUpdated.addListener(onUpdated);
+      });
 
+      // ✅ Step 3: Inject the automation script
+      await chrome.scripting.executeScript({
+        target: { tabId },
+        func: (query: string) => {
+          const delay = (ms: number) =>
+            new Promise((res) => setTimeout(res, ms));
+
+          const simulateUserFlow = async () => {
+            const newChatBtn = document.querySelector(
+              'button[data-testid="sidebar-new-thread"]'
+            ) as HTMLElement | null;
+
+            console.log("🔍 New chat button:", newChatBtn);
+
+            if (newChatBtn) {
+              const rect = newChatBtn.getBoundingClientRect();
+              const isVisible = rect.width > 0 && rect.height > 0;
+
+              console.log("📏 Button visibility:", isVisible);
+
+              if (isVisible) {
+                console.log("✅ Clicking New Chat button...");
+                newChatBtn.click();
+                await delay(1000);
+              } else {
+                console.warn("⚠️ New Chat button found but not visible.");
+              }
+            } else {
+              console.error("❌ New Chat button not found.");
+            }
+
+            const inputDiv = document.querySelector(
+              "#ask-input"
+            ) as HTMLElement | null;
+
+            if (inputDiv) {
+              inputDiv.focus();
+              const event = new InputEvent("input", {
+                bubbles: true,
+                cancelable: true,
+                inputType: "insertText",
+                data: query,
+              });
+              inputDiv.dispatchEvent(event);
+              await delay(500);
+            }
+
+            const submitBtn = document.querySelector(
+              'button[data-testid="submit-button"]'
+            ) as HTMLButtonElement | null;
+
+            if (submitBtn && !submitBtn.disabled) {
+              submitBtn.click();
+            }
+          };
+
+          simulateUserFlow();
+        },
+        args: [query],
+      });
+    } catch (error: any) {
+      console.error("🚨 Automation error:", error);
+    } finally {
+      setIsAutomationRunning(false);
+    }
+  };
 
   const injectScript = async () => {
     const [tab] = await chrome.tabs.query({
@@ -489,8 +486,7 @@ function Perplexity({
     });
   };
 
-
-    const bingUnbranding = async () => {
+  const bingUnbranding = async () => {
     const [tab] = await chrome.tabs.query({
       active: true,
       currentWindow: true,
@@ -510,11 +506,13 @@ function Perplexity({
         const targetDivs = [
           ".animate-in.fade-in.duration-100.ease-out.border-borderMain\\/50.ring-borderMain\\/50.divide-borderMain\\/50.dark\\:divide-borderMainDark\\/50.dark\\:ring-borderMainDark\\/50.dark\\:border-borderMainDark\\/50.bg-transparent",
           ".table .relative.flex",
-          ".max-w-threadContentWidth .gap-y-sm .min-w-full",
           ".group\\/sidebar",
           ".-ml-sm.items-center",
           ".grow.block",
           ".h-headerHeight",
+          ".max-w-threadContentWidth.relative.isolate.z-20.mx-auto", // remove query
+          '[data-testid="answer-mode-tabs"]', //remove the sources line
+          ".focus-visible\\:bg-offsetPlus.dark\\:focus-visible\\:bg-offsetPlusDark.hover\\:bg-offsetPlus.text-textOff.hover\\:text-textMain.dark\\:hover\\:bg-offsetPlusDark.dark\\:hover\\:text-textMainDark.font-sans.focus\\:outline-none.outline-none.outline-transparent.transition.duration-300.ease-out.select-none.items-center.relative.group\\/button.justify-center.text-center.rounded-full.cursor-pointer.active\\:scale-\\[0\\.97\\].active\\:duration-150.active\\:ease-outExpo.origin-center.whitespace-nowrap.inline-flex.text-sm.h-8.aspect-square",
         ];
 
         targetDivs.forEach((selector) => {
@@ -838,11 +836,7 @@ function Perplexity({
             Screenshot
           </Button> */}
 
-
-            <Button
-            onClick={bingUnbranding} 
-            className="btn-screenshot"
-          >
+          <Button onClick={bingUnbranding} className="btn-screenshot">
             Bing Unbranding
           </Button>
         </div>
