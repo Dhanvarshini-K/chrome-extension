@@ -55,7 +55,8 @@ function Perplexity({
     citations: false,
   });
 
-  const { OID = "", Query = "", Engine = "" } = queryData || {};
+  const { OID = "", Query = "", Engine = "", ChatID=""} = queryData || {};
+
 
   useEffect(() => {
     if (OID) {
@@ -72,6 +73,21 @@ function Perplexity({
       });
     }
   }, [OID]);
+
+  useEffect(() => {
+    const targetUrl = `https://www.perplexity.ai/search/${ChatID}`;
+    console.log("target url",targetUrl)
+    console.log("chatid",ChatID)
+
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      const currentTabId = tabs[0]?.id;
+      if (currentTabId) {
+        chrome.tabs.update(currentTabId, { url: targetUrl });
+      }
+    });
+  }, []);
+
+
 
   // const runAutomation = async () => {
   //   if (queryData?.Query) {

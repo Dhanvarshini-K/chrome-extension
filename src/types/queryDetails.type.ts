@@ -19,6 +19,7 @@ export type QueryFormData = {
   OID: string;
   Query: string;
   Engine:string;
+  ChatID?: string;
 };
 
 export const HEADERS = [
