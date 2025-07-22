@@ -79,7 +79,7 @@ const Home = ({ goQueryList, refreshQueryData }: HomeProps) => {
 
   //     const headers = lines[0].split("\t").map((h) => h.trim().toLowerCase());
   //     const oidIndex = headers.findIndex((h) => h === "oid");
-  //     const queryIndex = headers.findIndex((h) => h === "query");
+  //     const queryIndex = headers.findIndex((h) => h.includes("query"));
 
   //     if (oidIndex === -1 || queryIndex === -1) {
   //       setError("Required columns 'OID' and 'Query' not found in the file.");
@@ -130,70 +130,64 @@ const Home = ({ goQueryList, refreshQueryData }: HomeProps) => {
   //   reader.readAsText(file);
   // };
 
+  const handleSubmit = () => {
+    if (!file) {
+      setError("Please select a TSV file before submitting.");
+      return;
+    }
 
-const handleSubmit = () => {
-  if (!file) {
-    setError("Please select a TSV file before submitting.");
-    return;
-  }
+    const reader = new FileReader();
+    reader.onload = async () => {
+      const text = reader.result as string;
+      const lines = text
+        .trim()
+        .split("\n")
+        .filter((line) => line.trim() !== "");
 
-  const reader = new FileReader();
-  reader.onload = async () => {
-    const text = reader.result as string;
-    const lines = text
-      .trim()
-      .split("\n")
-      .filter((line) => line.trim() !== "");
+      const headers = lines[0].split("\t").map((h) => h.trim());
+      console.log("📋 Headers in TSV file:", headers);
 
-    const headers = lines[0].split("\t").map((h) => h.trim());
-    console.log("📋 Headers in TSV file:", headers);
+      const cleanValue = (raw: string) => {
+        if (raw?.startsWith('"') && raw?.endsWith('"')) {
+          raw = raw.slice(1, -1);
+        }
+        return raw?.replace(/""/g, '"');
+      };
 
-    const cleanValue = (raw: string) => {
-      if (raw?.startsWith('"') && raw?.endsWith('"')) {
-        raw = raw.slice(1, -1);
-      }
-      return raw?.replace(/""/g, '"');
-    };
+      const dataObjects = lines.slice(1).map((line) => {
+        const columns = line.split("\t").map((col) => col.trim());
 
-    const dataObjects = lines.slice(1).map((line) => {
-      const columns = line.split("\t").map((col) => col.trim());
+        const row: Record<string, string> = {};
+        headers.forEach((header, index) => {
+          row[header] = cleanValue(columns[index] ?? "");
+        });
 
-      const row: Record<string, string> = {};
-      headers.forEach((header, index) => {
-        row[header] = cleanValue(columns[index] ?? "");
+        const rawChatID = row["chatID"] ?? row["ChatID"] ?? "";
+
+        return {
+          TaskID: taskId,
+          Agent: agent,
+          Engine: engine,
+          TurnID: "1",
+          PerfData: "{}",
+          ...row,
+          QueryID: row["oid"] ?? row["OID"] ?? "", // fallback
+           ChatID: rawChatID, 
+        };
       });
 
-      return {
-        TaskID: taskId,
-        Agent: agent,
-        Engine: engine,
-        TurnID: "1",
-        PerfData: "{}",
-        ...row,
-        QueryID: row["oid"] ?? row["OID"] ?? "", // fallback
-      };
-    });
+      const validData = dataObjects.filter(
+        (row) => Object.keys(row).length > 0
+      );
 
-    const validData = dataObjects.filter((row) => Object.keys(row).length > 0);
+      // setCSVData(validData);
+      await createTableAndSaveData(validData);
+      await refreshQueryData();
 
-    // setCSVData(validData);
-    await createTableAndSaveData(validData);
-    await refreshQueryData();
-    setStorage({
-      agent,
-      taskId,
-      engine,
-      fileType: file.type,
-      submitted: "true",
-      fileName: file.name,
-      extractDocument: extractCodeBlock.toString(),
-    });
+      setSubmitted(true);
+    };
 
-    setSubmitted(true);
-  };
 
-  reader.readAsText(file);
-};
 
   return (
     <div className="home-container">

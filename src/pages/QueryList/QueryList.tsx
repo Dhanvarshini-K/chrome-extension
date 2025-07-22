@@ -3,7 +3,7 @@ import "./QueryList.css";
 import { FaSpinner } from "react-icons/fa";
 import Breadcrumbs from "../../components/Breadcrumbs/Breadcrumbs";
 import Button from "../../components/Button/Button";
-import { HEADERS, type QueryItem } from "../../types";
+import { HEADERS, type QueryFormData, type QueryItem } from "../../types";
 import { useState } from "react";
 import { DB_NAME } from "../../utils";
 import Fuse from "fuse.js";
@@ -224,7 +224,8 @@ const QueryList: React.FC<QueryListProps> = ({
       OID: item.OID,
       Query: item.Query,
       Engine: item.Engine,
-    });
+      ChatID: item.ChatID || "",
+    } as QueryFormData);
   }
 
   return (
@@ -292,7 +293,8 @@ const QueryList: React.FC<QueryListProps> = ({
                 <th>S.NO</th>
                 <th>OID</th>
                 <th>QUERY</th>
-                <th>STATUS</th>
+                {/* <th>STATUS</th> */}
+                <th>ChatID</th>
               </tr>
             </thead>
             <tbody>
@@ -311,7 +313,36 @@ const QueryList: React.FC<QueryListProps> = ({
                   >
                     {item.Query}
                   </td>
-                  <td>{item.ResponseCode === "Success" ? "✅" : ""}</td>
+                  <td
+                    className="query-cell clickable-cell"
+                    onClick={() => goQueryDetails(item)}
+                  >
+                    {item.ChatID}
+                  </td>
+                  {/* <td
+                    className="query-cell clickable-cell"
+                    onClick={() => {
+                      if (item.ChatID) {
+                        navigator.clipboard
+                          .writeText(item.ChatID)
+                          .then(() => {
+                            console.log(
+                              "📋 ChatID copied to clipboard:",
+                              item.ChatID
+                            );
+                          })
+                          .catch((err) => {
+                            console.error("❌ Failed to copy ChatID", err);
+                          });
+                      }
+
+                      goQueryDetails(item); // existing navigation logic
+                    }}
+                  >
+                    {item.ChatID}
+                  </td> */}
+
+                  {/* <td>{item.ResponseCode === "Success" ? "✅" : ""}</td> */}
                 </tr>
               ))}
             </tbody>
