@@ -1,0 +1,1 @@
+(()=>{const e=setInterval(()=>{const t=document.querySelector('[data-testid="answer-mode-tabs-tab-sources"]');t instanceof HTMLElement?(t.click(),console.log("✅ Sources tab clicked"),clearInterval(e)):console.log("⌛ Waiting for sources tab...")},500);setTimeout(()=>clearInterval(e),1e4)})();
