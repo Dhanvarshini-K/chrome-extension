@@ -1,0 +1,1 @@
+(()=>{try{const o=localStorage.getItem("citations");console.log("data",o);const t=o?JSON.parse(o):[];console.log("read local stotage citations",t),window.postMessage({type:"LOCAL_CITATIONS",citations:t},"*")}catch(o){console.error("Failed to read localStorage:",o)}})();
