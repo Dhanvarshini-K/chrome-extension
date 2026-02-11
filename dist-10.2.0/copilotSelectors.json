@@ -1,0 +1,177 @@
+[
+  {
+    "name": "header",
+    "selectors": [
+      { "selector": "main div.sticky div.absolute", "multiple": false }
+    ],
+    "removeParent": true
+  },
+  {
+    "name": "Share Button",
+    "selectors": [
+      {
+        "selector": "button[title='Share message and prompt']",
+        "multiple": true
+      },
+      { "selector": "button[title='Settings']", "multiple": false }
+    ],
+    "removeParent": true
+  },
+  {
+    "name": "startChatButtons",
+    "selectors": [
+      { "selector": "button[title='Open Sidebar']", "multiple": false },
+      { "selector": "button[title='Start new chat']", "multiple": false },
+      { "selector": "button[title='Open actions menu']", "multiple": false }
+    ],
+    "removeParent": false
+  },
+  {
+    "name": "responseButtonsContainer",
+    "selectors": [
+      {
+        "selector": ".flex.flex-col.items-end.gap-3.pb-8 button",
+        "multiple": false
+      }
+    ],
+    "removeParent": false
+  },
+  {
+    "name": "searchBox",
+    "selectors": [
+      { "selector": "div[data-testid=composer]", "multiple": false }
+    ],
+    "removeParent": false
+  },
+  {
+    "name": "bgGradient",
+    "selectors": [
+      {
+        "selector": "main div.absolute div.bg-gradient-chat-light",
+        "multiple": false
+      }
+    ],
+    "removeParent": false
+  },
+  {
+    "name": "todaySeparator",
+    "selectors": [
+      {
+        "selector": "main div[data-testid=chat-page] div.items-center",
+        "multiple": false
+      }
+    ],
+    "removeParent": false
+  },
+  {
+    "name": "ratingsControls",
+    "selectors": [{ "selector": "main div.ease-in-out", "multiple": false }],
+    "removeParent": false
+  },
+  {
+    "name": "greyElements",
+    "selectors": [
+      {
+        "selector": "div[data-content=user-message] div, button[aria-label*=Citation], a span.inline-block, table tr th, code.font-mono",
+        "multiple": true
+      }
+    ],
+    "removeParent": false,
+    "style": {
+      "backgroundColor": "#e9e9e9"
+    }
+  },
+  {
+    "name": "backgroundElements",
+    "selectors": [
+      { "selector": "div[data-testid=chat-page]", "multiple": false },
+      { "selector": "div.sticky > div.absolute", "multiple": false }
+    ],
+    "removeParent": false,
+    "style": {
+      "backgroundColor": "#fff"
+    }
+  },
+  {
+    "name": "tableBorders",
+    "selectors": [
+      { "selector": "table tr th", "multiple": true },
+      { "selector": "table tr td", "multiple": true }
+    ],
+    "removeParent": false,
+    "style": {
+      "borderColor": "#e0e0e0"
+    }
+  },
+  
+  {
+    "name": "showMoreButton",
+    "selectors": [
+      {
+        "selector": "button[title*='Show'][title*='more citations']",
+        "multiple": false
+      }
+    ],
+    "removeParent": false
+  },
+  {
+    "name": "citationLinksModal",
+    "selectors": [{ "selector": "div[data-copy='false'] a", "multiple": true }],
+    "removeParent": false
+  },
+  {
+    "name": "aiMessageContainerParentPadding",
+    "selectors": [
+      {
+        "selector": "div[data-tabster*='groupper'][data-content='ai-message']",
+        "multiple": false
+      }
+    ],
+    "removeParent": false,
+    "style": {
+      "parent": {
+        "padding": "0"
+      }
+    }
+  },
+  {
+    "name": "scrollToBottomButton",
+    "selectors": [
+      {
+        "selector": "button[title='Scroll to bottom']",
+        "multiple": false
+      }
+    ],
+    "removeParent": true
+  },
+  {
+    "name": "removeFullHeightWillChangeAutoRelative",
+    "selectors": [
+      {
+        "selector": ".h-full.will-change-auto.relative",
+        "multiple": false
+      }
+    ],
+    "removeParent": false
+  },
+  {
+    "name": "removePointerEventsNoneAbsoluteFlex",
+    "selectors": [
+      {
+        "selector": ".pointer-events-none.absolute.flex.justify-center.z-10.inset-x-0.bottom-\\[calc\\(var\\(--composer-container-height\\)\\+1rem\\)\\]",
+        "multiple": false
+      }
+    ],
+    "removeParent": false
+  },
+  {
+    "name": "removeSuggestions",
+    "selectors": [
+      {
+        "selector": ".flex.flex-col.items-end.gap-3.pb-8",
+        "multiple": false
+      }
+    ],
+    "removeParent": false
+  }
+]
