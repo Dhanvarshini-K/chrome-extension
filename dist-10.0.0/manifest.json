@@ -1,0 +1,40 @@
+{
+  "manifest_version": 3,
+  "name": "Claude Extension",
+  "version": "1.0.0",
+  "permissions": [
+    "storage",
+    "scripting",
+    "activeTab",
+    "sidePanel",
+    "tabs",
+    "webNavigation"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>",  "https://www.claudeusercontent.com/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "inject.js",
+        "readLocalStorage.js",
+        "clickSources.js",
+        "selectors.json"
+      ],
+      "matches": ["<all_urls>"]
+    }
+  ],
+  "host_permissions": ["<all_urls>", "https://www.claudeusercontent.com/*"],
+  "side_panel": {
+    "default_path": "sidePanel.html",
+    "default_icon": "numenticaUIHeaderLogo.svg"
+  }
+}
