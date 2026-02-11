@@ -1,10 +1,11 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState } from "react";
 import Button from "../../components/Button/Button";
 import "./Home.css";
-// import { setCSVData } from "../../utils";
-import { createTableAndSaveData } from "../../utils/indexedDB";
+import {  createTableAndSaveData } from "../../utils/indexedDB";
 import { AIEngine } from "../../types";
-import { getStorage, setStorage } from "../../utils/localStorage";
+import { getStorage } from "../../utils/localStorage";
+import { setCSVData } from "../../utils";
 
 interface HomeProps {
   goQueryList: () => void;
@@ -14,11 +15,10 @@ interface HomeProps {
 const Home = ({ goQueryList, refreshQueryData }: HomeProps) => {
   const [agent, setAgent] = useState("");
   const [taskId, setTaskId] = useState("");
-  const [engine, setEngine] = useState<AIEngine>(AIEngine.ChatGPT);
+  const [engine, setEngine] = useState<AIEngine>(AIEngine.Perplexity);
   const [file, setFile] = useState<File | null>(null);
   const [error, setError] = useState("");
   const [submitted, setSubmitted] = useState(false);
-
   const [extractCodeBlock, setExtractCodeBlock] = useState(false);
 
   const isSubmitDisabled = !agent || !engine || !file;
@@ -63,86 +63,38 @@ const Home = ({ goQueryList, refreshQueryData }: HomeProps) => {
     }
   };
 
-  // const handleSubmit = () => {
-  //   if (!file) {
-  //     setError("Please select a TSV file before submitting.");
-  //     return;
+  // const getQueryHeaderByEngine = (engine: string) => {
+  //   console.log('engine',engine)
+  //   switch (engine.toLowerCase()) {
+  //     case "copilot":
+  //       return "share_link_copilot";
+  //     case "chatgpt":
+  //       return "share_link_chatgpt";
+  //     case "gemini":
+  //       return "share_link_gemini";
+  //     default:
+  //       return "";
   //   }
-
-  //   const reader = new FileReader();
-  //   reader.onload = async () => {
-  //     const text = reader.result as string;
-  //     const lines = text
-  //       .trim()
-  //       .split("\n")
-  //       .filter((line) => line.trim() !== "");
-
-  //     const headers = lines[0].split("\t").map((h) => h.trim().toLowerCase());
-  //     const oidIndex = headers.findIndex((h) => h === "oid");
-  //     const queryIndex = headers.findIndex((h) => h.includes("query"));
-
-  //     if (oidIndex === -1 || queryIndex === -1) {
-  //       setError("Required columns 'OID' and 'Query' not found in the file.");
-  //       return;
-  //     }
-
-  //     const cleanQuery = (raw: string) => {
-  //       if (raw && raw?.startsWith('"') && raw?.endsWith('"')) {
-  //         raw = raw.slice(1, -1);
-  //       }
-  //       return raw?.replace(/""/g, '"');
-  //     };
-
-  //     const dataObjects = lines.slice(1).map((line) => {
-  //       const columns = line.split("\t").map((col) => col.trim());
-
-  //       return {
-  //         TaskID: taskId,
-  //         OID: columns[oidIndex],
-  //         Query: cleanQuery(columns[queryIndex]),
-  //         QueryID: columns[oidIndex],
-  //         Agent: agent,
-  //         Engine: engine,
-  //         TurnID: "1",
-  //         PerfData: "{}",
-  //       };
-  //     });
-
-  //     const validData = dataObjects.filter((row) => row.OID);
-
-  //     setCSVData(validData);
-  //     await createTableAndSaveData(validData);
-
-  //     await refreshQueryData();
-  //     setStorage({
-  //       agent,
-  //       taskId,
-  //       engine,
-  //       fileType: file.type,
-  //       submitted: "true",
-  //       fileName: file.name,
-  //       extractDocument: extractCodeBlock.toString(), // or `"true"` / `"false"`
-  //     });
-
-  //     setSubmitted(true);
-  //   };
-
-  //   reader.readAsText(file);
   // };
-
   const handleSubmit = () => {
+    console.log('file',file)
     if (!file) {
       setError("Please select a TSV file before submitting.");
       return;
     }
 
+
     const reader = new FileReader();
     reader.onload = async () => {
+      console.log('reader',reader)
       const text = reader.result as string;
+      console.log('text',text)
       const lines = text
         .trim()
         .split("\n")
         .filter((line) => line.trim() !== "");
+
+        console.log('lines',lines)
 
       const headers = lines[0].split("\t").map((h) => h.trim());
       console.log("📋 Headers in TSV file:", headers);
@@ -172,23 +124,26 @@ const Home = ({ goQueryList, refreshQueryData }: HomeProps) => {
           PerfData: "{}",
           ...row,
           QueryID: row["oid"] ?? row["OID"] ?? "", // fallback
-           ChatID: rawChatID, 
+           ChatID: rawChatID,
         };
       });
+
+    
 
       const validData = dataObjects.filter(
         (row) => Object.keys(row).length > 0
       );
 
-      // setCSVData(validData);
+      console.log('validData',validData)
+
+      setCSVData(validData as any[]);
       await createTableAndSaveData(validData);
       await refreshQueryData();
 
       setSubmitted(true);
     };
-
-
-
+      reader.readAsText(file);
+  }
   return (
     <div className="home-container">
       <h2 className="header">Query Data Set</h2>
@@ -198,10 +153,6 @@ const Home = ({ goQueryList, refreshQueryData }: HomeProps) => {
           <div className="field-group">
             <div className="label-value-container">
               <p className="label">Agent:</p> {agent}
-            </div>
-            <div className="label-value-container">
-              <p className="label">Task ID: </p>
-              {taskId}
             </div>
             <div className="label-value-container">
               <p className="label">Engine: </p>
@@ -242,21 +193,12 @@ const Home = ({ goQueryList, refreshQueryData }: HomeProps) => {
                 <option value={AIEngine.Perplexity}>Perplexity</option>
                 <option value={AIEngine.Copilot}>Copilot</option>
                 <option value={AIEngine.BIC}>BIC</option>
-                <option value={AIEngine.ClaudeS}>Claude Sonnet</option>
+                <option value={AIEngine.ClaudePro}>Claude Pro</option>
                 <option value={AIEngine.ClaudeO}>Claude Opus</option>
+                <option value={AIEngine.Gemini}>Gemini</option>
+                <option value={AIEngine.M365}>M365</option>
               </select>
             </div>
-
-            {/* <label className="checkbox-label">
-              <input
-                type="checkbox"
-                checked={extractCodeBlock}
-                onChange={(e) => setExtractCodeBlock(e.target.checked)}
-                className="checkbox-input"
-              />
-              Enable Extract Document
-            </label> */}
-
             <input
               type="file"
               id="csvFileInput"

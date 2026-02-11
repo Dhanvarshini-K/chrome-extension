@@ -1,28 +1,30 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+// * eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState } from "react";
 import TurnDown from "turndown";
-import "./ChatGpt.css";
-import { extractIdFromPath } from "./helpers/chatgpt/extractId";
 import Button from "./components/Button/Button";
-import Breadcrumbs from "./components/Breadcrumbs/Breadcrumbs";
 import CopyButton from "./components/CopyButton/CopyButton";
-import { saveOrUpdate } from "./utils";
+import Breadcrumbs from "./components/Breadcrumbs/Breadcrumbs";
 import {
-  type ResponseTabsType,
-  ResponseTabs,
-  type AiType,
   AgentToAiType,
-  type AiAliasType,
   AiAlias,
+  ResponseTabs,
+  type AiAliasType,
+  type AiType,
   type QueryFormData,
+  type ResponseTabsType,
 } from "./types";
 import { handleScreenshot } from "./utils/screenshotUtils";
+import { saveOrUpdate } from "./utils";
+import "./Perplexity.css";
+import { extractIdFromPath } from "./helpers/chatgpt/extractId";
 
 type ExtractedData = {
   html: string;
   text: string;
 };
 
-interface ChatGptProps {
+interface PerplexityProps {
   goBack?: () => void;
   goHome: () => void;
   goQueryList: () => void;
@@ -30,18 +32,22 @@ interface ChatGptProps {
   refreshQueryData: () => Promise<void>;
 }
 
-const Chatgpt = ({
+function ChatGpt({
+  queryData,
   goHome,
   goQueryList,
-  queryData,
   refreshQueryData,
-}: ChatGptProps) => {
+}: PerplexityProps) {
   const [data, setData] = useState<ExtractedData>({ html: "", text: "" });
-  const [citations, setCitations] = useState<string>("");
   const [activeTab, setActiveTab] = useState<ResponseTabsType>(
     ResponseTabs.HTML
   );
+  const [id, setId] = useState<string>("");
+  const [html, setHtml] = useState("");
+  const [markdown, setMarkdown] = useState("");
+  const [isAutomationRunning, setIsAutomationRunning] = useState(false);
 
+  const [citationsData, setCitationsData] = useState("");
   const [extractedTabs, setExtractedTabs] = useState<
     Record<ResponseTabsType, boolean>
   >({
@@ -50,51 +56,251 @@ const Chatgpt = ({
     citations: false,
   });
 
-  const [id, setId] = useState<string>("");
-
-  const tabs: ResponseTabsType[] = Object.values(ResponseTabs);
+  const { OID = "", Query = "", Engine = "" } = queryData || {};
 
   useEffect(() => {
-    const extractIdFromUrl = async () => {
+    if (OID) {
+      chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
+        if (tab?.id) {
+          chrome.scripting.executeScript({
+            target: { tabId: tab.id },
+            func: (OID) => {
+              localStorage.setItem("OID", OID);
+            },
+            args: [OID],
+          });
+        }
+      });
+    }
+  }, [OID]);
+
+  const runAutomation = async () => {
+    if (!queryData?.Query) return;
+
+    try {
+      setIsAutomationRunning(true);
+
       const [tab] = await chrome.tabs.query({
         active: true,
         currentWindow: true,
       });
-      const url = tab.url || "";
-      const id = extractIdFromPath(url);
-      if (id) {
-        setId(id);
-      }
-    };
 
-    extractIdFromUrl();
-  }, []);
+      if (!tab?.id) return;
 
-  useEffect(() => {
-    const extractAllData = async () => {
-      await triggerExtract();
-      await triggerExtractCitations();
+      const tabId = tab.id;
+      const query = queryData.Query;
 
-      setExtractedTabs({
-        html: true,
-        markdown: true,
-        citations: true,
+      // ✅ Step 1: Reload the tab
+      await chrome.tabs.reload(tabId);
+      console.log("🔄 Tab reloaded. Waiting for load...");
+
+      // ✅ Step 2: Wait for the tab to fully load
+      await new Promise<void>((resolve) => {
+        const onUpdated = (
+          updatedTabId: number,
+          changeInfo: chrome.tabs.TabChangeInfo
+        ) => {
+          if (updatedTabId === tabId && changeInfo.status === "complete") {
+            chrome.tabs.onUpdated.removeListener(onUpdated);
+            console.log("✅ Page fully loaded");
+            resolve();
+          }
+        };
+
+        chrome.tabs.onUpdated.addListener(onUpdated);
       });
-    };
 
-    extractAllData();
-  }, []);
+      // ✅ Step 3: Inject the automation script
+      await chrome.scripting.executeScript({
+        target: { tabId },
+        func: (query: string) => {
+          const delay = (ms: number) =>
+            new Promise((res) => setTimeout(res, ms));
 
-  useEffect(() => {
-    const listener = (message: any) => {
-      if (message.type === "EXTRACTED_HTML") {
-        setData({ html: message.html, text: message.text });
+          const simulateUserFlow = async () => {
+            const newChatBtn = document.querySelector(
+              'a[data-testid="create-new-chat-button"]'
+            ) as HTMLElement | null;
+
+            console.log("🔍 New chat button:", newChatBtn);
+
+            if (newChatBtn) {
+              const rect = newChatBtn.getBoundingClientRect();
+              const isVisible = rect.width > 0 && rect.height > 0;
+
+              console.log("📏 Button visibility:", isVisible);
+
+              if (isVisible) {
+                console.log("✅ Clicking New Chat button...");
+                newChatBtn.click();
+                await delay(1000);
+              } else {
+                console.warn("⚠️ New Chat button found but not visible.");
+              }
+            } else {
+              console.error("❌ New Chat button not found.");
+            }
+
+            console.log("comlete new chat function");
+
+            await delay(1000); // Give time for the menu to appear
+
+     
+            async function clickComposerPlusAndWaitForPopup() {
+              const plusButtonSelector =
+                'button[data-testid="composer-plus-btn"]';
+              const popupSelector = 'div[role="menu"]'; // adjust this if your popup uses a different role
+
+              const plusButton = document.querySelector(
+                plusButtonSelector
+              ) as HTMLElement | null;
+
+              if (!plusButton) {
+                console.log("[Automation] ❌ Plus button not found");
+                return false;
+              }
+
+              // Try full synthetic interaction
+              plusButton.dispatchEvent(
+                new PointerEvent("pointerdown", { bubbles: true })
+              );
+              plusButton.dispatchEvent(
+                new PointerEvent("pointerup", { bubbles: true })
+              );
+              plusButton.click();
+              console.log(
+                "[Automation] ✅ Triggered pointer and click events on plus button"
+              );
+
+              // Wait for popup to open
+              let tries = 0;
+              while (tries < 20) {
+                const popup = document.querySelector(popupSelector);
+                if (popup && popup.getAttribute("data-state") === "open") {
+                  console.log("[Automation] ✅ Popup is open");
+                  return true;
+                }
+                await delay(200);
+                tries++;
+              }
+
+              // Fallback logging
+              const popup = document.querySelector(popupSelector);
+              if (popup) {
+                console.log(
+                  "[Automation] ⚠️ Popup found but state:",
+                  popup.getAttribute("data-state")
+                );
+                console.log(
+                  "[Automation] CSS display:",
+                  getComputedStyle(popup).display
+                );
+              } else {
+                console.log("[Automation] ❌ Popup not found in DOM");
+              }
+
+              return false;
+            }
+
+            const plusButton = await clickComposerPlusAndWaitForPopup();
+            if (!plusButton) {
+              console.log(
+                "[Automation] Failed to open model selector dropdown, aborting"
+              );
+              return;
+            }
+            await delay(1000);
+
+            const menuItems = Array.from(
+              document.querySelectorAll('[role="menuitemradio"]')
+            );
+
+            console.log("menu items", menuItems);
+
+            const deepResearchItem = menuItems.find((item) => {
+              console.log("item", item);
+              const truncateDiv = item.querySelector("div.truncate");
+              console.log("truncate", truncateDiv);
+              return truncateDiv?.textContent?.trim() === "Deep research";
+            }) as HTMLElement | undefined;
+
+            console.log("deepResearchItem", deepResearchItem);
+            if (deepResearchItem) {
+              console.log("✅ Found 'Deep research', clicking...");
+              deepResearchItem.click();
+            } else {
+              console.error("❌ 'Deep research' item not found.");
+            }
+
+            const inputDiv = document.querySelector(
+              "div#prompt-textarea"
+            ) as HTMLElement | null;
+
+            if (inputDiv) {
+              inputDiv.focus();
+              const escapedQuery = query.replace(
+                /\t/g,
+                "&nbsp;&nbsp;&nbsp;&nbsp;"
+              );
+              inputDiv.innerHTML = `<p>${escapedQuery}</p>`;
+              const event = new InputEvent("input", {
+                bubbles: true,
+                cancelable: true,
+                inputType: "insertText",
+                data: query,
+              });
+              inputDiv.dispatchEvent(event);
+              await delay(500);
+            }
+
+            const submitBtn = document.querySelector(
+              'button[data-testid="send-button"]'
+            ) as HTMLButtonElement | null;
+
+            if (submitBtn && !submitBtn.disabled) {
+              submitBtn.click();
+            }
+          };
+
+          simulateUserFlow();
+        },
+        args: [query],
+      });
+    } catch (error: any) {
+      console.error("🚨 Automation error:", error);
+    } finally {
+      setIsAutomationRunning(false);
+    }
+  };
+
+
+  const triggerExtractResponse = async () => {
+    const [tab] = await chrome.tabs.query({
+      active: true,
+      currentWindow: true,
+    });
+    chrome.scripting.executeScript(
+      {
+        target: { tabId: tab.id! },
+        func: () => {
+          const el = document.querySelector(
+            'article[data-testid="conversation-turn-4"][data-turn="assistant"]'
+          );
+          const targetDiv = el?.querySelector(
+            "div.group\\/turn-messages"
+          ) as HTMLDivElement;
+          const response = targetDiv.querySelector("div") as HTMLDivElement;
+          console.log("response outerhtml", response.outerHTML);
+          return response ? response.outerHTML : "No Content found";
+        },
+      },
+      (injectionResults) => {
+        const result = injectionResults?.[0]?.result;
+        console.log("result", result);
+        setData({ html: result as string, text: "" });
       }
-    };
-
-    chrome.runtime.onMessage.addListener(listener);
-    return () => chrome.runtime.onMessage.removeListener(listener);
-  }, []);
+    );
+  };
 
   const triggerExtractCitations = async () => {
     const [tab] = await chrome.tabs.query({
@@ -125,42 +331,10 @@ const Chatgpt = ({
       },
       (injectionResults) => {
         const result = injectionResults?.[0]?.result;
-        setCitations(result || "No content found");
+        setCitationsData(result || "No content found");
       }
     );
   };
-
-  const triggerExtract = async () => {
-    const [tab] = await chrome.tabs.query({
-      active: true,
-      currentWindow: true,
-    });
-    chrome.scripting.executeScript(
-      {
-        target: { tabId: tab.id! },
-        func: () => {
-          const el = document.querySelector(".markdown");
-          console.log("Element:", el);
-          return el ? el.outerHTML : "No content found";
-        },
-      },
-      (injectionResults) => {
-        const result = injectionResults?.[0]?.result;
-        setData({ html: result as string, text: "" });
-      }
-    );
-  };
-
-  const formattedDate = new Date()
-    .toLocaleString("en-US", {
-      month: "2-digit",
-      day: "2-digit",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-    })
-    .replace(",", "");
 
   const renderOutput = () => {
     if (!data.html) return null;
@@ -178,10 +352,52 @@ const Chatgpt = ({
       .replace(/\n/g, "##NEWLINE##")
       .trim();
 
-    return { htmlSingleLine, markdownSingleLine };
+    console.log("html and markdown", htmlSingleLine, markdownSingleLine);
+
+    setHtml(htmlSingleLine);
+    setMarkdown(markdownSingleLine);
   };
 
-  const output = renderOutput();
+  useEffect(() => {
+    if (data.html) {
+      renderOutput();
+    }
+  }, [data.html]);
+
+  useEffect(() => {
+    const extractIdFromUrl = async () => {
+      const [tab] = await chrome.tabs.query({
+        active: true,
+        currentWindow: true,
+      });
+      const url = tab.url || "";
+      const id = extractIdFromPath(url);
+      if (id) {
+        setId(id);
+      }
+    };
+
+    extractIdFromUrl();
+  }, []);
+
+  useEffect(() => {
+    setExtractedTabs({
+      html: html !== "No content found" ? true : false,
+      markdown: markdown !== "No content found" ? true : false,
+      citations: citationsData !== "" ? true : false,
+    });
+  }, [html, markdown, citationsData]);
+
+  useEffect(() => {
+    const listener = (message: any) => {
+      if (message.type === "EXTRACTED_HTML") {
+        setData({ html: message.html, text: message.text });
+      }
+    };
+
+    chrome.runtime.onMessage.addListener(listener);
+    return () => chrome.runtime.onMessage.removeListener(listener);
+  }, []);
 
   const removeDiv = async () => {
     const [tab] = await chrome.tabs.query({
@@ -192,17 +408,24 @@ const Chatgpt = ({
     chrome.scripting.executeScript({
       target: { tabId: tab.id! },
       func: () => {
-        // aria-label="Edit in canvas"
-        const button = document.querySelector(
-          '[data-testid="copy-turn-action-button"]'
-        );
-        if (button) {
-          button.parentElement?.parentElement?.remove();
+        function safeRemove(el: any) {
+          if (el && el.parentNode) {
+            el.parentNode.removeChild(el);
+          }
         }
-
+        // aria-label="Edit in canvas"
         document
-          .querySelector("#sidebar-header")
-          ?.parentElement?.parentElement?.remove();
+          .querySelectorAll('[data-testid="copy-turn-action-button"]')
+          .forEach((btn) => {
+            safeRemove(btn.parentElement?.parentElement);
+          });
+   
+        safeRemove(document.querySelector('[data-testid="nav-list-widget"]'));
+
+        safeRemove(
+          document.querySelector("#sidebar-header")?.parentElement
+            ?.parentElement
+        );
 
         const targetDivs = [".group-footnote"];
 
@@ -210,7 +433,7 @@ const Chatgpt = ({
           "#conversation-header-actions",
           "#thread-bottom",
           "#page-header",
-          "#thread-bottom-container",
+          // "#thread-bottom-container",
           "#sidebar-header",
           "#sidebar",
           ".draggable",
@@ -225,35 +448,52 @@ const Chatgpt = ({
           divs.forEach((div) => div.remove());
         });
 
-        const reactionsDiv = document.querySelector("button[data-testid='copy-turn-action-button']") 
-        if(reactionsDiv) reactionsDiv?.parentElement?.parentElement?.remove()
+        const likeIcon = document.querySelector(".mt-3.w-full.empty\\:hidden");
+        if (likeIcon) {
+          likeIcon.remove();
+        }
 
-        const downArrow = document.querySelector("svg.icon.text-token-text-primary")
-        if(downArrow) downArrow?.parentElement?.parentElement?.remove()
-        // document.documentElement.style.overflow = "auto";
-        // document.body.style.overflow = "auto";
-        // document.body.style.height = "auto";
+        const reactionsDiv = document.querySelector(
+          "button[data-testid='copy-turn-action-button']"
+        );
+        if (reactionsDiv) reactionsDiv?.parentElement?.parentElement?.remove();
+
+        const downArrow = document.querySelector(
+          "svg.icon.text-token-text-primary"
+        );
+        if (downArrow) downArrow?.parentElement?.parentElement?.remove();
       },
     });
   };
-
-  const handleTabClick = (tabName: ResponseTabsType) => {
+  const handleTabClick = async (tabName: ResponseTabsType) => {
     setActiveTab(tabName);
   };
 
-  const { OID = "", Query = "", Engine = "" } = queryData || {};
+  const formattedDate = new Date()
+    .toLocaleString("en-US", {
+      month: "2-digit",
+      day: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    })
+    .replace(",", "");
+
+  const tabs: ResponseTabsType[] = Object.values(ResponseTabs);
 
   const aiType: AiType = AgentToAiType[Engine]; // "chatgpt"
   const alias: AiAliasType = AiAlias[aiType]; // "cgp"
   const ResponseImage = `${alias}${OID}.png`; // "cgp123.png"
 
   const savePayload = async () => {
-    const responseText = output?.markdownSingleLine || "";
-    const responseHTML = output?.htmlSingleLine || "";
+    const responseText = markdown || "";
+    const responseHTML = html || "";
     const sources =
-      citations.includes("No content found") && !citations.startsWith("[")
+      citationsData.includes("No content found") &&
+      !citationsData.startsWith("[")
         ? ""
-        : citations;
+        : citationsData;
     const timestamp = formattedDate;
 
     const isComplete =
@@ -273,7 +513,7 @@ const Chatgpt = ({
     };
 
     try {
-      await saveOrUpdate(payload);
+      await saveOrUpdate(payload as any);
       await refreshQueryData();
       goQueryList();
       alert("Saved successfully to IndexedDB!");
@@ -286,7 +526,8 @@ const Chatgpt = ({
   const handleSave = async () => {
     if (!data.html) {
       console.log("Triggering extract since data.html is empty...");
-      await triggerExtract();
+      await triggerExtractResponse();
+      await triggerExtractCitations();
       setTimeout(() => {
         savePayload();
       }, 1000);
@@ -294,6 +535,18 @@ const Chatgpt = ({
       savePayload();
     }
   };
+
+  const startExtract = async () => {
+    setIsAutomationRunning(false);
+    console.log("entered");
+    await triggerExtractResponse();
+    console.log("exit");
+    await triggerExtractCitations();
+  };
+
+  console.log("active tab", activeTab);
+  console.log("response tab", ResponseTabs);
+  console.log("html", html);
 
   return (
     <div className="query-details-container">
@@ -304,44 +557,46 @@ const Chatgpt = ({
         onQueryListClick={goQueryList}
         currentPageLabel="Query Details"
       />
-      <p className="query-details-title">Query Details</p>
 
       <div className="field-value-container">
-        <div>
-          <p className="field-text">Query ID:</p>
+        <div className="field-container">
+          <span className="field-text">Query ID:</span>
           <div className="value-container">
             <span>{OID}</span>
             <CopyButton value={OID} />
           </div>
         </div>
 
-        <div>
-          <p className="field-text">Engine:</p>
+        <div className="field-container">
+          <span className="field-text">Engine:</span>
           <div className="value-container">
             <span>{Engine}</span>
             <CopyButton value={Engine} />
           </div>
         </div>
-        <search></search>
 
-        <div>
-          <p className="field-text">Query:</p>
+        <div className="field-container">
+          <span className="field-text">Query:</span>
           <div className="value-container">
-            <span>{Query}</span>
+            <span className="query-field">{Query}</span>
             <CopyButton value={Query} />
           </div>
         </div>
 
-        <div>
-          <p className="field-text">Chat ID:</p>
-          <div className="value-container">
-            <span>{id}</span>
-            <CopyButton value={id} />
-          </div>
+        <div className="field-container">
+          <span className="field-text">Chat ID:</span>
+          {data.html !== "" ? (
+            <div className="value-container">
+              <span>{id}</span>
+              <CopyButton value={id} />
+            </div>
+          ) : (
+            <span>Please enter a prompt to see the Chat ID.</span>
+          )}
         </div>
 
-        <div>
-          <p className="field-text">Date:</p>
+        <div className="field-container">
+          <span className="field-text">Date:</span>
           <div className="value-container">
             <span>
               {new Date()
@@ -358,65 +613,109 @@ const Chatgpt = ({
             <CopyButton value={formattedDate} />
           </div>
         </div>
-      </div>
 
-      <div style={{ marginBottom: "1rem" }}>
-        <Button onClick={removeDiv}>Remove Related Divs</Button>
+        <div className="field-container">
+          <span className="field-text">Response Image Name:</span>
+          <div className="value-container">
+            <span className="query-field">
+              {ResponseImage.replace(/\.png$/, "")}
+            </span>
+            <CopyButton value={ResponseImage.replace(/\.png$/, "")} />
+          </div>
+        </div>
       </div>
-
-      <div style={{ marginBottom: "1rem" }}>
-        <Button onClick={() => handleScreenshot(ResponseImage)}>
-          Screenshot
-        </Button>
-      </div>
-
-      <div className="tab-buttons">
-        {tabs.map((tab) => (
-          <Button
-            key={tab}
-            className={`tab-button ${extractedTabs[tab] ? "extracted" : ""}`}
-            onClick={() => handleTabClick(tab)}
-          >
-            {tab.charAt(0).toUpperCase() + tab.slice(1)}
+      <div className="value-container">
+        <div style={{ marginBottom: "1rem" }}>
+          <Button onClick={removeDiv} className="btn-remove-divs">
+            Remove Related Divs
           </Button>
-        ))}
+        </div>
+
+        <div style={{ marginBottom: "1rem", width: "48%" }}>
+          <Button
+            onClick={() => handleScreenshot(ResponseImage)}
+            className="btn-screenshot"
+          >
+            Screenshot
+          </Button>
+        </div>
       </div>
 
-      <div className="tab-content">
-        {activeTab === ResponseTabs.HTML && output && (
-          <div>
-            <CopyButton value={output.htmlSingleLine} />
-            <pre className="pre-block">{output.htmlSingleLine}</pre>
+      {html && markdown ? (
+        <>
+          <div className="tab-buttons">
+            {tabs.map((tab) => (
+              <Button
+                key={tab}
+                className={`tab-button ${
+                  extractedTabs[tab] ? "extracted" : ""
+                }`}
+                onClick={() => handleTabClick(tab)}
+              >
+                {tab.charAt(0).toUpperCase() + tab.slice(1)}
+              </Button>
+            ))}
           </div>
-        )}
-        {activeTab === ResponseTabs.MARKDOWN && output && (
-          <div>
-            <CopyButton value={output.markdownSingleLine} />
-            <pre className="pre-block">{output.markdownSingleLine}</pre>
-          </div>
-        )}
-        {activeTab === ResponseTabs.CITATIONS && citations && (
-          <div>
-            <CopyButton value={citations} />
-            <pre className="pre-block">{citations}</pre>
-          </div>
-        )}
-      </div>
 
-      <div className="save-extract-buttons-container">
-        <Button
-          onClick={handleSave}
-          disabled={
-            !extractedTabs.html ||
-            !extractedTabs.markdown ||
-            !extractedTabs.citations
-          }
+          <div className="tab-content">
+            {activeTab === ResponseTabs.HTML && html && (
+              <div>
+                <CopyButton value={html} />
+                <pre className="pre-block">{html}</pre>
+              </div>
+            )}
+            {activeTab === ResponseTabs.MARKDOWN && markdown && (
+              <div>
+                <CopyButton value={markdown} />
+                <pre className="pre-block">{markdown}</pre>
+              </div>
+            )}
+            {activeTab === ResponseTabs.CITATIONS && (
+              <div>
+                {citationsData && (
+                  <>
+                    <CopyButton value={citationsData} />
+                    <pre className="pre-block">{citationsData}</pre>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div className="save-extract-buttons-container">
+            <Button
+              onClick={handleSave}
+              disabled={!extractedTabs.html || !extractedTabs.markdown}
+            >
+              Save
+            </Button>
+          </div>
+        </>
+      ) : (
+        <div
+          className="value-container"
+          style={{ flexDirection: "column", gap: "1rem" }}
         >
-          Save
-        </Button>
-      </div>
+          <div style={{ width: "47%" }}>
+            <Button
+              onClick={runAutomation}
+              buttonText="Run Automation"
+              className="btn-run-automation"
+              style={{ width: "100%" }}
+              disabled={isAutomationRunning}
+            />
+          </div>
+          <div style={{ width: "48%" }}>
+            <Button
+              buttonText="Start Extract"
+              onClick={startExtract}
+              className="btn-start-extract"
+              style={{ width: "100%" }}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
-};
-
-export default Chatgpt;
+}
+export default ChatGpt;

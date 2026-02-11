@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useMemo, useEffect } from "react";
 import "./QueryList.css";
 import { FaSpinner } from "react-icons/fa";
@@ -7,7 +8,6 @@ import { HEADERS, type QueryFormData, type QueryItem } from "../../types";
 import { useState } from "react";
 import { DB_NAME } from "../../utils";
 import Fuse from "fuse.js";
-import { version } from "../../../package.json";
 import { getStorage, removeFromStorage } from "../../utils/localStorage";
 
 interface QueryListProps {
@@ -23,7 +23,6 @@ const QueryList: React.FC<QueryListProps> = ({
   data,
   goHome,
   goChat,
-  goToValidation,
   setQueryData,
   refreshQueryData,
 }) => {
@@ -80,14 +79,14 @@ const QueryList: React.FC<QueryListProps> = ({
   const status = useMemo(() => {
     const allEmpty = data.every(
       (item) =>
-        item.ResponseText.trim() === "" && item.ResponseHTML.trim() === ""
+        item.ResponseText.trim() === "" && item.ResponseHTML === ""
     );
 
     if (allEmpty) return "Not Yet Started";
 
     const anyEmpty = data.some(
       (item) =>
-        item.ResponseText.trim() === "" || item.ResponseHTML.trim() === ""
+        item.ResponseText.trim() === "" || item.ResponseHTML === ""
     );
 
     if (anyEmpty) return "Pending";
@@ -121,6 +120,10 @@ const QueryList: React.FC<QueryListProps> = ({
           PerfData,
         } = item;
 
+        const sanitizedQuery = Query
+          ? Query.replace(/\n/g, "##NEWLINE##").replace(/\t/g, "##TAB##")
+          : "";
+
         return [
           TaskID,
           OID,
@@ -128,7 +131,7 @@ const QueryList: React.FC<QueryListProps> = ({
           QueryID,
           TurnID,
           Engine,
-          Query,
+          sanitizedQuery,
           ResponseText,
           ResponseHTML,
           Sources === "No citations found." ? "" : Sources,
@@ -227,6 +230,15 @@ const QueryList: React.FC<QueryListProps> = ({
       ChatID: item.ChatID || "",
     } as QueryFormData);
   }
+  // const isValidUrl = (text: string) => {
+  //   try {
+  //     new URL(text);
+  //     return true;
+  //   } catch {
+  //     return false;
+  //   }
+  // };
+
 
   return (
     <div className="query-list-container">
@@ -248,7 +260,6 @@ const QueryList: React.FC<QueryListProps> = ({
 
           {isDropdownOpen && (
             <div className="dropdown-menu">
-              <Button onClick={goToValidation}>Validation</Button>
               <Button onClick={handleExtract}>Extract</Button>
               <Button
                 className="clear-button danger"
@@ -274,9 +285,6 @@ const QueryList: React.FC<QueryListProps> = ({
             {`Status : ${status}`}
           </div>
         </div>
-        <p>
-          <span style={{ fontWeight: "bold" }}>Version:</span> {version}
-        </p>
         <div className="search-bar">
           <input
             type="text"
@@ -293,8 +301,7 @@ const QueryList: React.FC<QueryListProps> = ({
                 <th>S.NO</th>
                 <th>OID</th>
                 <th>QUERY</th>
-                {/* <th>STATUS</th> */}
-                <th>ChatID</th>
+                <th>STATUS</th>
               </tr>
             </thead>
             <tbody>
@@ -311,38 +318,34 @@ const QueryList: React.FC<QueryListProps> = ({
                     className="query-cell clickable-cell"
                     onClick={() => goQueryDetails(item)}
                   >
+                    {/* {isValidUrl(item.Query) ? (
+                      <span
+                        className="query-link"
+                        onClick={(e) => {
+                          e.stopPropagation();
+
+                          // 1️⃣ Trigger extension navigation
+                          goQueryDetails(item);
+
+                          // 2️⃣ Open URL in the SAME tab
+                          window.location.href = item.Query;
+                        }}
+                      >
+                        {item.Query}
+                      </span>
+                    ) : (
+                      item.Query
+                    )} */}
                     {item.Query}
                   </td>
-                  <td
-                    className="query-cell clickable-cell"
+
+                  {/* <td
+                    className="clickable-cell"
                     onClick={() => goQueryDetails(item)}
                   >
                     {item.ChatID}
-                  </td>
-                  {/* <td
-                    className="query-cell clickable-cell"
-                    onClick={() => {
-                      if (item.ChatID) {
-                        navigator.clipboard
-                          .writeText(item.ChatID)
-                          .then(() => {
-                            console.log(
-                              "📋 ChatID copied to clipboard:",
-                              item.ChatID
-                            );
-                          })
-                          .catch((err) => {
-                            console.error("❌ Failed to copy ChatID", err);
-                          });
-                      }
-
-                      goQueryDetails(item); // existing navigation logic
-                    }}
-                  >
-                    {item.ChatID}
                   </td> */}
-
-                  {/* <td>{item.ResponseCode === "Success" ? "✅" : ""}</td> */}
+                  <td>{item.ResponseCode === "Success" ? "✅" : ""}</td>
                 </tr>
               ))}
             </tbody>

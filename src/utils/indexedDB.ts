@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { openDB } from "idb";
 import { HEADERS } from "../types";
 
@@ -11,12 +12,12 @@ async function openDatabase() {
     upgrade(db) {
       if (!db.objectStoreNames.contains(STORE_NAME)) {
         const store = db.createObjectStore(STORE_NAME, {
-          keyPath: "id",
+          keyPath: "oid",
           autoIncrement: true,
         });
 
         for (const key of HEADERS) {
-          store.createIndex(key, key, { unique: key === "OID" });
+          store.createIndex(key, key, { unique:false });
         }
       }
     },
@@ -58,12 +59,27 @@ export async function saveOrUpdate(payload: { [key: string]: any }) {
   }
 }
 
+export async function saveTurn(payload: any) {
+  const db = await openDatabase();
+  const tx = db.transaction(STORE_NAME, "readwrite");
+  const store = tx.objectStore(STORE_NAME);
+
+  await store.add({
+    ...payload,
+    id: `${payload.OID}_${payload.TurnID}`,
+  });
+
+  await tx.done;
+}
+
 // Save or update multiple rows (bulk)
 export async function createTableAndSaveData(dataObjects: any[]) {
   const db = await openDatabase();
   const tx = db.transaction(STORE_NAME, "readwrite");
   const store = tx.objectStore(STORE_NAME);
   const oidIndex = store.index("OID");
+
+  console.log('dataObjects',dataObjects)
 
   for (const row of dataObjects) {
     const fullRow: any = {};
@@ -85,20 +101,6 @@ export async function createTableAndSaveData(dataObjects: any[]) {
 
   await tx.done;
 }
-
-// Get all rows sorted by timestamp
-// export async function getAllFromIndexedDB(): Promise<any[]> {
-//   try {
-//     const db = await openDatabase();
-//     const tx = db.transaction(STORE_NAME, "readonly");
-//     const store = tx.objectStore(STORE_NAME);
-//     const allItems = await store.getAll();
-//     return allItems.sort((a, b) => a.timestamp - b.timestamp);
-//   } catch (error) {
-//     console.error("Error reading from IndexedDB:", error);
-//     throw error;
-//   }
-// }
 
 export async function doesIndexedDBExist(dbName: string): Promise<boolean> {
   return new Promise((resolve, reject) => {

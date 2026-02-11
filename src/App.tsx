@@ -1,7 +1,5 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import { useEffect, useState } from "react";
+ import { useEffect, useState } from "react";
 import "./App.css";
-import Home from "./pages/Home/Home";
 import QueryList from "./pages/QueryList/QueryList";
 import Perplexity from "./Perplexity";
 import { getAllFromIndexedDB } from "./utils";
@@ -12,6 +10,9 @@ import { getStorage } from "./utils/localStorage";
 import BingImageCreator from "./BingImageCreator";
 import Claude from "./Claude";
 import Validation from "./Validation";
+import Home from "./pages/Home/Home";
+import Gemini from "./Gemini";
+import M365Copilot from "./M365Copilot";
 
 function App() {
   const [page, setPage] = useState<
@@ -22,7 +23,9 @@ function App() {
     | "copilot"
     | "BIC"
     | "claude"
-    |"validation"
+    | "validation"
+    | "geminiPro"
+    | "m365Copilot"
   >("home");
   const [selectedQuery, setSelectedQuery] = useState<QueryFormData | null>(
     null
@@ -59,19 +62,17 @@ function App() {
   const goChat = (item: QueryFormData) => {
     console.log("item", item);
     setSelectedQuery(item);
-
-    if (engine === "PplxPro") {
+    if (item.Engine === "PplxPro") {
       setPage("perplexity");
-    } else if (engine === "ChatGptPro") {
+    } else if (item.Engine === "ChatGpt") {
       setPage("chatgpt");
-
-    } else if (engine === "Cplt") {
+    } else if (item.Engine === "Copilot") {
       setPage("copilot");
-    } else if (engine === "ClaudeS" || engine === "ClaudeO") {
+    } else if (item.Engine === "ClaudePro" || engine === "ClaudeO") {
       setPage("claude");
-
-    }
-    else {
+    } else if (item.Engine === "Gemini") {
+      setPage("geminiPro");
+    } else {
       setPage("BIC");
     }
   };
@@ -93,13 +94,8 @@ function App() {
             goToValidation={goToValidation}
           />
         );
-        case "validation":
-          return(
-            <Validation data={queryData}
-            goQueryList={goQueryList}
-            
-            />
-          );
+      case "validation":
+        return <Validation data={queryData} goQueryList={goQueryList} />;
       case "chatgpt":
         return (
           <Chatgpt
@@ -136,6 +132,15 @@ function App() {
             queryData={selectedQuery}
           />
         );
+      case "geminiPro":
+        return (
+          <Gemini
+            goHome={goHome}
+            goQueryList={goQueryList}
+            refreshQueryData={refreshQueryData}
+            queryData={selectedQuery}
+          />
+        );
       case "BIC":
         return (
           <BingImageCreator
@@ -145,6 +150,17 @@ function App() {
             refreshQueryData={refreshQueryData}
           />
         );
+
+      case "m365Copilot":
+        return (
+          <M365Copilot
+            goHome={goHome}
+            goQueryList={goQueryList}
+            queryData={selectedQuery}
+            refreshQueryData={refreshQueryData}
+          />
+        );
+
       default:
         return (
           <Home goQueryList={goQueryList} refreshQueryData={refreshQueryData} />

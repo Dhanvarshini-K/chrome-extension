@@ -4,43 +4,51 @@ export type AiType =
   | "perplexity"
   | "copilot"
   | "bic"
-  | "claudeS"
-  | "claudeO";
+  | "claudePro"
+  | "claudeO"
+  | "gemini"
+  | "M365";
 
 // 2. AI Engine mapping (used by Agent)
 export const AIEngine = {
-  ChatGPT: "ChatGptPro",
+  ChatGPT: "ChatGpt",
   Perplexity: "PplxPro",
-  Copilot: "Cplt",
+  Copilot: "Copilot",
   BIC: "BIC",
-  ClaudeS: "ClaudeS",
+  ClaudePro: "ClaudePro",
   ClaudeO: "ClaudeO",
+  Gemini: "Gemini",
+  M365: "M365"
 } as const;
 
 // 3. AI Engine Type
 export type AIEngine = (typeof AIEngine)[keyof typeof AIEngine];
 
 // 4. Alias type
-export type AiAliasType = "cgp" | "pp" | "cp" | "bic" | "clds" | "cldo";
+export type AiAliasType =  "cp" |'pp'| 'cpp'| 'cg'|'bic' |'gp' | 'cldo' |'mcp';
 
 // 5. Mapping AiType to AiAliasType
 export const AiAlias: Record<AiType, AiAliasType> = {
-  chatgpt: "cgp",
+  chatgpt: "cg",
   perplexity: "pp",
-  copilot: "cp",
+  copilot: "cpp",
   bic: "bic",
-  claudeS: "clds",
+  claudePro: "cp",
   claudeO: "cldo",
+  gemini: "gp",
+  M365: "mcp"
 };
 
 // 6. Reverse mapping (optional)
 export const AliasToAiType: Record<AiAliasType, AiType> = {
-  cgp: "chatgpt",
+  cg: "chatgpt",
   pp: "perplexity",
-  cp: "copilot",
+  cpp: "copilot",
   bic: "bic",
-  clds: "claudeS",
+  cp: "claudePro",
   cldo: "claudeO",
+  gp: "gemini",
+  mcp: "M365"
 };
 
 // 7. Agent string (runtime string) to AiType
@@ -49,6 +57,8 @@ export const AgentToAiType: Record<string, AiType> = {
   [AIEngine.Perplexity]: "perplexity",
   [AIEngine.Copilot]: "copilot",
   [AIEngine.BIC]: "bic",
-  [AIEngine.ClaudeS]: "claudeS",
+  [AIEngine.ClaudePro]: "claudePro",
   [AIEngine.ClaudeO]: "claudeO",
+  [AIEngine.Gemini]: "gemini",
+  [AIEngine.M365]: "M365"
 };

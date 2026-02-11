@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 export interface QueryItem {
   TaskID: string;
   OID: string;

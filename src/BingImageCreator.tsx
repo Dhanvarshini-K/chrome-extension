@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState } from "react";
 import {
   AgentToAiType,
@@ -117,7 +118,7 @@ const BingImageCreator = ({
     };
 
     try {
-      await saveOrUpdate(payload);
+      await saveOrUpdate(payload as any);
       await refreshQueryData();
       goQueryList();
       alert("Saved successfully to IndexedDB!");

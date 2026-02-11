@@ -222,7 +222,7 @@
 
 .query-cell {
   max-width: 138px;
-  white-space: nowrap;
+  white-space: pre;
   overflow: hidden;
   text-overflow: ellipsis;
 }

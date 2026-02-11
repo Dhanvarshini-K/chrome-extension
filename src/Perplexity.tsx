@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // * eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState } from "react";
 import TurnDown from "turndown";
@@ -38,7 +39,7 @@ function Perplexity({
 }: PerplexityProps) {
   const [data, setData] = useState<ExtractedData>({ html: "", text: "" });
   const [activeTab, setActiveTab] = useState<ResponseTabsType>(
-    ResponseTabs.HTML
+    ResponseTabs.HTML,
   );
   const [id, setId] = useState<string>("");
   const [html, setHtml] = useState("");
@@ -55,8 +56,7 @@ function Perplexity({
     citations: false,
   });
 
-  const { OID = "", Query = "", Engine = "", ChatID=""} = queryData || {};
-
+  const { OID = "", Query = "", Engine = "" } = queryData || {};
 
   useEffect(() => {
     if (OID) {
@@ -74,20 +74,17 @@ function Perplexity({
     }
   }, [OID]);
 
-  useEffect(() => {
-    const targetUrl = `https://www.perplexity.ai/search/${ChatID}`;
-    console.log("target url",targetUrl)
-    console.log("chatid",ChatID)
+  // useEffect(() => {
+  //   const targetUrl = `https://www.perplexity.ai/search/${ChatID}`;
+  //   console.log("target url", targetUrl);
 
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      const currentTabId = tabs[0]?.id;
-      if (currentTabId) {
-        chrome.tabs.update(currentTabId, { url: targetUrl });
-      }
-    });
-  }, []);
-
-
+  //   chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+  //     const currentTabId = tabs[0]?.id;
+  //     if (currentTabId) {
+  //       chrome.tabs.update(currentTabId, { url: targetUrl });
+  //     }
+  //   });
+  // }, []);
 
   // const runAutomation = async () => {
   //   if (queryData?.Query) {
@@ -176,29 +173,9 @@ function Perplexity({
       if (!tab?.id) return;
 
       const tabId = tab.id;
-      const query = queryData.Query;
 
-      // ✅ Step 1: Reload the tab
-      await chrome.tabs.reload(tabId);
-      console.log("🔄 Tab reloaded. Waiting for load...");
+      const query = queryData?.Query;
 
-      // ✅ Step 2: Wait for the tab to fully load
-      await new Promise<void>((resolve) => {
-        const onUpdated = (
-          updatedTabId: number,
-          changeInfo: chrome.tabs.TabChangeInfo
-        ) => {
-          if (updatedTabId === tabId && changeInfo.status === "complete") {
-            chrome.tabs.onUpdated.removeListener(onUpdated);
-            console.log("✅ Page fully loaded");
-            resolve();
-          }
-        };
-
-        chrome.tabs.onUpdated.addListener(onUpdated);
-      });
-
-      // ✅ Step 3: Inject the automation script
       await chrome.scripting.executeScript({
         target: { tabId },
         func: (query: string) => {
@@ -206,32 +183,11 @@ function Perplexity({
             new Promise((res) => setTimeout(res, ms));
 
           const simulateUserFlow = async () => {
-            const newChatBtn = document.querySelector(
-              'button[data-testid="sidebar-new-thread"]'
-            ) as HTMLElement | null;
-
-            console.log("🔍 New chat button:", newChatBtn);
-
-            if (newChatBtn) {
-              const rect = newChatBtn.getBoundingClientRect();
-              const isVisible = rect.width > 0 && rect.height > 0;
-
-              console.log("📏 Button visibility:", isVisible);
-
-              if (isVisible) {
-                console.log("✅ Clicking New Chat button...");
-                newChatBtn.click();
-                await delay(1000);
-              } else {
-                console.warn("⚠️ New Chat button found but not visible.");
-              }
-            } else {
-              console.error("❌ New Chat button not found.");
-            }
-
             const inputDiv = document.querySelector(
-              "#ask-input"
+              "#ask-input",
             ) as HTMLElement | null;
+            console.log("query", query);
+            console.log("inputDiv", inputDiv);
 
             if (inputDiv) {
               inputDiv.focus();
@@ -246,9 +202,10 @@ function Perplexity({
             }
 
             const submitBtn = document.querySelector(
-              'button[data-testid="submit-button"]'
+              'button[aria-label="Submit"]',
             ) as HTMLButtonElement | null;
 
+            console.log("submitBtn", submitBtn);
             if (submitBtn && !submitBtn.disabled) {
               submitBtn.click();
             }
@@ -300,7 +257,7 @@ function Perplexity({
       (injectionResults) => {
         const result = injectionResults?.[0]?.result;
         setData({ html: result as string, text: "" });
-      }
+      },
     );
   };
 
@@ -317,7 +274,7 @@ function Perplexity({
     const markdownSingleLine = markdown
       .replace(/\s+/g, " ")
       .replace(/\t/g, " ")
-      .replace(/\n/g, "##NEWLINE##")
+      .replace(/\n/g, "##NEWLINW##")
       .trim();
 
     setHtml(htmlSingleLine);
@@ -336,7 +293,7 @@ function Perplexity({
       const parts = lastSegment.split("-");
       const possibleId = parts[parts.length - 1];
       return possibleId ? possibleId : null;
-    } catch (e) {
+    } catch {
       return null;
     }
   }
@@ -392,7 +349,7 @@ function Perplexity({
       target: { tabId: tab.id! },
       func: () => {
         const answerTab = document.querySelector(
-          "button[data-testid='answer-mode-tabs-tab-search']"
+          "button[data-testid='answer-mode-tabs-tab-search']",
         ) as HTMLButtonElement;
 
         if (answerTab) {
@@ -439,13 +396,20 @@ function Perplexity({
             }
           });
 
+        document.querySelector("button[aria-label='Research']")?.remove();
+
         document.querySelectorAll("*").forEach((el: any) => {
           el.style.color = "#555";
         });
+        document
+          .querySelector(
+            'button[aria-label="More actions"][data-state="closed"][aria-haspopup="menu"]',
+          )
+          ?.remove();
 
         document
           .querySelectorAll<HTMLElement>(
-            'body div[class*="bg-"], body button[class*="bg-"]'
+            'body div[class*="bg-"], body button[class*="bg-"]',
           )
           .forEach((el) => {
             const isDiv = el.tagName === "DIV";
@@ -453,19 +417,23 @@ function Perplexity({
             const isCodeLanguageIndicator =
               el.getAttribute("data-testid") === "code-language-indicator";
 
-            // ❌ Skip if it's a <div> and matches exclusion criteria
+            // Skip special divs
             if (isDiv && (hasCodeWrapper || isCodeLanguageIndicator)) return;
 
-            const bg = getComputedStyle(el).backgroundColor;
-            const isTransparent =
-              bg === "rgba(0, 0, 0, 0)" || bg === "transparent";
+            // Skip bg-offset entirely
+            if (el.classList.contains("bg-offset")) return;
 
+            // Remove all other bg-* classes
             el.className = el.className
               .split(" ")
               .filter((cls) => !cls.startsWith("bg-") && !cls.includes(":bg-"))
               .join(" ");
 
-            if (!isTransparent) {
+            // Set default background only if nothing is set
+            const bg = getComputedStyle(el).backgroundColor;
+            const isTransparent =
+              bg === "rgba(0, 0, 0, 0)" || bg === "transparent";
+            if (isTransparent) {
               el.style.backgroundColor = "#fff";
             }
           });
@@ -473,17 +441,17 @@ function Perplexity({
         //Removed dots
 
         const dotsIcon = document.querySelector(
-          ".tabler-icon.tabler-icon-dots"
+          ".tabler-icon.tabler-icon-dots",
         ) as HTMLElement | null;
         dotsIcon?.remove();
 
         const repeatIcon = document.querySelector(
-          ".tabler-icon.tabler-icon-repeat"
+          ".tabler-icon.tabler-icon-repeat",
         ) as HTMLElement | null;
         if (repeatIcon) repeatIcon?.remove();
 
         const shareIcon = document.querySelector(
-          ".tabler-icon.tabler-icon-share-3"
+          ".tabler-icon.tabler-icon-share-3",
         ) as HTMLElement | null;
         if (shareIcon) shareIcon?.remove();
 
@@ -493,129 +461,7 @@ function Perplexity({
         ].forEach((el) => el.remove());
 
         const relatedContainer = document.querySelector(
-          ".animate-in.fade-in.duration-100.ease-out.border-borderMain\\/50.ring-borderMain\\/50.divide-borderMain\\/50.dark\\:divide-borderMainDark\\/50.dark\\:ring-borderMainDark\\/50.dark\\:border-borderMainDark\\/50.bg-transparent"
-        );
-        if (relatedContainer) {
-          relatedContainer.remove();
-        }
-      },
-    });
-  };
-
-  const bingUnbranding = async () => {
-    const [tab] = await chrome.tabs.query({
-      active: true,
-      currentWindow: true,
-    });
-
-    chrome.scripting.executeScript({
-      target: { tabId: tab.id! },
-      func: () => {
-        const answerTab = document.querySelector(
-          "button[data-testid='answer-mode-tabs-tab-search']"
-        ) as HTMLButtonElement;
-
-        if (answerTab) {
-          answerTab.click();
-        }
-
-        const targetDivs = [
           ".animate-in.fade-in.duration-100.ease-out.border-borderMain\\/50.ring-borderMain\\/50.divide-borderMain\\/50.dark\\:divide-borderMainDark\\/50.dark\\:ring-borderMainDark\\/50.dark\\:border-borderMainDark\\/50.bg-transparent",
-          ".table .relative.flex",
-          ".group\\/sidebar",
-          ".-ml-sm.items-center",
-          ".grow.block",
-          ".h-headerHeight",
-          ".max-w-threadContentWidth.relative.isolate.z-20.mx-auto", // remove query
-          '[data-testid="answer-mode-tabs"]', //remove the sources line
-          ".focus-visible\\:bg-offsetPlus.dark\\:focus-visible\\:bg-offsetPlusDark.hover\\:bg-offsetPlus.text-textOff.hover\\:text-textMain.dark\\:hover\\:bg-offsetPlusDark.dark\\:hover\\:text-textMainDark.font-sans.focus\\:outline-none.outline-none.outline-transparent.transition.duration-300.ease-out.select-none.items-center.relative.group\\/button.justify-center.text-center.rounded-full.cursor-pointer.active\\:scale-\\[0\\.97\\].active\\:duration-150.active\\:ease-outExpo.origin-center.whitespace-nowrap.inline-flex.text-sm.h-8.aspect-square",
-        ];
-
-        targetDivs.forEach((selector) => {
-          const divs = document.querySelector(selector);
-          if (divs) {
-            divs.remove();
-          }
-        });
-
-        const ariaLabelsToRemove = [
-          "Not helpful",
-          "Helpful",
-          "Copy",
-          "Pro Search",
-        ];
-        ariaLabelsToRemove.forEach((label) => {
-          const btn = document.querySelector(`button[aria-label="${label}"]`);
-          if (btn) {
-            btn.remove();
-          }
-        });
-
-        // Remove <div> that contains <svg class="tabler-icon tabler-icon-dots">
-        document
-          .querySelectorAll("svg.tabler-icon.tabler-icon-dots")
-          .forEach((svg) => {
-            const parentDiv = svg.closest("div");
-            if (parentDiv) {
-              parentDiv.remove();
-            }
-          });
-
-        document.querySelectorAll("*").forEach((el: any) => {
-          el.style.color = "#555";
-        });
-
-        document
-          .querySelectorAll<HTMLElement>(
-            'body div[class*="bg-"], body button[class*="bg-"]'
-          )
-          .forEach((el) => {
-            const isDiv = el.tagName === "DIV";
-            const hasCodeWrapper = el.className.includes("codeWrapper");
-            const isCodeLanguageIndicator =
-              el.getAttribute("data-testid") === "code-language-indicator";
-
-            // ❌ Skip if it's a <div> and matches exclusion criteria
-            if (isDiv && (hasCodeWrapper || isCodeLanguageIndicator)) return;
-
-            const bg = getComputedStyle(el).backgroundColor;
-            const isTransparent =
-              bg === "rgba(0, 0, 0, 0)" || bg === "transparent";
-
-            el.className = el.className
-              .split(" ")
-              .filter((cls) => !cls.startsWith("bg-") && !cls.includes(":bg-"))
-              .join(" ");
-
-            if (!isTransparent) {
-              el.style.backgroundColor = "#fff";
-            }
-          });
-
-        //Removed dots
-
-        const dotsIcon = document.querySelector(
-          ".tabler-icon.tabler-icon-dots"
-        ) as HTMLElement | null;
-        dotsIcon?.remove();
-
-        const repeatIcon = document.querySelector(
-          ".tabler-icon.tabler-icon-repeat"
-        ) as HTMLElement | null;
-        if (repeatIcon) repeatIcon?.remove();
-
-        const shareIcon = document.querySelector(
-          ".tabler-icon.tabler-icon-share-3"
-        ) as HTMLElement | null;
-        if (shareIcon) shareIcon?.remove();
-
-        [
-          ...document.querySelectorAll("div.-mx-sm.gap-xs.relative.flex"),
-          ...document.querySelectorAll("div.gap-sm.grid.grid-cols-4.md\\:px-0"),
-        ].forEach((el) => el.remove());
-
-        const relatedContainer = document.querySelector(
-          ".animate-in.fade-in.duration-100.ease-out.border-borderMain\\/50.ring-borderMain\\/50.divide-borderMain\\/50.dark\\:divide-borderMainDark\\/50.dark\\:ring-borderMainDark\\/50.dark\\:border-borderMainDark\\/50.bg-transparent"
         );
         if (relatedContainer) {
           relatedContainer.remove();
@@ -623,6 +469,300 @@ function Perplexity({
       },
     });
   };
+
+  // const bingUnbranding = async () => {
+  //   const [tab] = await chrome.tabs.query({
+  //     active: true,
+  //     currentWindow: true,
+  //   });
+
+  //   chrome.scripting.executeScript({
+  //     target: { tabId: tab.id! },
+  //     func: () => {
+  //       const answerTab = document.querySelector(
+  //         "button[data-testid='answer-mode-tabs-tab-search']"
+  //       ) as HTMLButtonElement;
+
+  //       if (answerTab) {
+  //         answerTab.click();
+  //       }
+
+  //       const targetDivs = [
+  //         ".animate-in.fade-in.duration-100.ease-out.border-borderMain\\/50.ring-borderMain\\/50.divide-borderMain\\/50.dark\\:divide-borderMainDark\\/50.dark\\:ring-borderMainDark\\/50.dark\\:border-borderMainDark\\/50.bg-transparent",
+  //         ".table .relative.flex",
+  //         ".group\\/sidebar",
+  //         ".-ml-sm.items-center",
+  //         ".grow.block",
+  //         ".h-headerHeight",
+  //         ".max-w-threadContentWidth.relative.isolate.z-20.mx-auto", // remove query
+  //         '[data-testid="answer-mode-tabs"]', //remove the sources line
+  //         ".focus-visible\\:bg-offsetPlus.dark\\:focus-visible\\:bg-offsetPlusDark.hover\\:bg-offsetPlus.text-textOff.hover\\:text-textMain.dark\\:hover\\:bg-offsetPlusDark.dark\\:hover\\:text-textMainDark.font-sans.focus\\:outline-none.outline-none.outline-transparent.transition.duration-300.ease-out.select-none.items-center.relative.group\\/button.justify-center.text-center.rounded-full.cursor-pointer.active\\:scale-\\[0\\.97\\].active\\:duration-150.active\\:ease-outExpo.origin-center.whitespace-nowrap.inline-flex.text-sm.h-8.aspect-square",
+  //       ];
+
+  //       targetDivs.forEach((selector) => {
+  //         const divs = document.querySelector(selector);
+  //         if (divs) {
+  //           divs.remove();
+  //         }
+  //       });
+
+  //       const ariaLabelsToRemove = [
+  //         "Not helpful",
+  //         "Helpful",
+  //         "Copy",
+  //         "Pro Search",
+  //       ];
+  //       ariaLabelsToRemove.forEach((label) => {
+  //         const btn = document.querySelector(`button[aria-label="${label}"]`);
+  //         if (btn) {
+  //           btn.remove();
+  //         }
+  //       });
+
+  //       // Remove <div> that contains <svg class="tabler-icon tabler-icon-dots">
+  //       document
+  //         .querySelectorAll("svg.tabler-icon.tabler-icon-dots")
+  //         .forEach((svg) => {
+  //           const parentDiv = svg.closest("div");
+  //           if (parentDiv) {
+  //             parentDiv.remove();
+  //           }
+  //         });
+
+  //       document.querySelectorAll("*").forEach((el: any) => {
+  //         el.style.color = "#555";
+  //       });
+
+  //       document
+  //         .querySelector(
+  //           "div.divide-y.border-t.border-subtlest.ring-subtlest.divide-subtlest"
+  //         )
+  //         ?.remove();
+
+  //       document
+  //         .querySelector("div.flex.w-full.items-center.justify-between.mb-sm")
+  //         ?.remove();
+
+  //       // document
+  //       //   .querySelectorAll<HTMLElement>(
+  //       //     'body div[class*="bg-"], body button[class*="bg-"]'
+  //       //   )
+  //       //   .forEach((el) => {
+  //       //     const isDiv = el.tagName === "DIV";
+  //       //     const hasCodeWrapper = el.className.includes("codeWrapper");
+  //       //     const isCodeLanguageIndicator =
+  //       //       el.getAttribute("data-testid") === "code-language-indicator";
+
+  //       //     // ❌ Skip if it's a <div> and matches exclusion criteria
+  //       //     if (isDiv && (hasCodeWrapper || isCodeLanguageIndicator)) return;
+
+  //       //     const bg = getComputedStyle(el).backgroundColor;
+  //       //     const isTransparent =
+  //       //       bg === "rgba(0, 0, 0, 0)" || bg === "transparent";
+
+  //       //     el.className = el.className
+  //       //       .split(" ")
+  //       //       .filter((cls) => !cls.startsWith("bg-") && !cls.includes(":bg-"))
+  //       //       .join(" ");
+
+  //       //     if (!isTransparent) {
+  //       //       el.style.backgroundColor = "#fff";
+  //       //     }
+  //       //   });
+
+  //       // document
+  //       //   .querySelectorAll<HTMLElement>(
+  //       //     "body div[class*='bg-'], body button[class*='bg-']"
+  //       //   )
+  //       //   .forEach((el) => {
+  //       //     const isDiv = el.tagName === "DIV";
+  //       //     const hasCodeWrapper = el.className.includes("codeWrapper");
+  //       //     const isCodeLanguageIndicator =
+  //       //       el.getAttribute("data-testid") === "code-language-indicator";
+  //       //     // :white_check_mark: New exclusions
+  //       //     const isFileDownloadButton =
+  //       //       el.className.includes("bg-super") ||
+  //       //       el.className.includes("bg-offset");
+  //       //     if (
+  //       //       (isDiv && (hasCodeWrapper || isCodeLanguageIndicator)) ||
+  //       //       isFileDownloadButton
+  //       //     ) {
+  //       //       return; // :no_entry: Skip modification
+  //       //     }
+  //       //     const bg = getComputedStyle(el).backgroundColor;
+  //       //     const isTransparent =
+  //       //       bg === "rgba(0, 0, 0, 0)" || bg === "transparent";
+  //       //     el.className = el.className
+  //       //       .split(" ")
+  //       //       .filter((cls) => !cls.startsWith("bg-") && !cls.includes(":bg-"))
+  //       //       .join(" ");
+  //       //     if (!isTransparent) {
+  //       //       el.style.backgroundColor = "#fff";
+  //       //     }
+  //       //   });
+  //       document
+  //         .querySelectorAll<HTMLElement>(
+  //           "body div[class*='bg-'], body button[class*='bg-']"
+  //         )
+  //         .forEach((el) => {
+  //           const isDiv = el.tagName === "DIV";
+  //           const className = el.className;
+
+  //           const hasCodeWrapper = className.includes("codeWrapper");
+  //           const isCodeLanguageIndicator =
+  //             el.getAttribute("data-testid") === "code-language-indicator";
+
+  //           const isFileDownloadButton =
+  //             className.includes("bg-super") || className.includes("bg-offset");
+
+  //           // ✅ NEW: Skip the play button container
+  //           const containsPlayIcon = !!el.querySelector(
+  //             "svg.tabler-icon-player-play-filled"
+  //           );
+
+  //           if (
+  //             containsPlayIcon || // ✅ Don't touch the Play button
+  //             (isDiv && (hasCodeWrapper || isCodeLanguageIndicator)) ||
+  //             isFileDownloadButton
+  //           ) {
+  //             return; // ⛔ Skip this element
+  //           }
+
+  //           const bg = getComputedStyle(el).backgroundColor;
+  //           const isTransparent =
+  //             bg === "rgba(0, 0, 0, 0)" || bg === "transparent";
+
+  //           // Remove Tailwind background classes
+  //           el.className = className
+  //             .split(" ")
+  //             .filter((cls) => !cls.startsWith("bg-") && !cls.includes(":bg-"))
+  //             .join(" ");
+
+  //           if (!isTransparent) {
+  //             el.style.backgroundColor = "#fff";
+  //           }
+  //         });
+
+  //       //Removed dots
+
+  //       const dotsIcon = document.querySelector(
+  //         ".tabler-icon.tabler-icon-dots"
+  //       ) as HTMLElement | null;
+  //       dotsIcon?.remove();
+
+  //       const repeatIcon = document.querySelector(
+  //         ".tabler-icon.tabler-icon-repeat"
+  //       ) as HTMLElement | null;
+  //       if (repeatIcon) repeatIcon?.remove();
+
+  //       const shareIcon = document.querySelector(
+  //         ".tabler-icon.tabler-icon-share-3"
+  //       ) as HTMLElement | null;
+  //       if (shareIcon) shareIcon?.remove();
+
+  //       [
+  //         ...document.querySelectorAll("div.-mx-sm.gap-xs.relative.flex"),
+  //         ...document.querySelectorAll("div.gap-sm.grid.grid-cols-4.md\\:px-0"),
+  //       ].forEach((el) => el.remove());
+
+  //       const relatedContainer = document.querySelector(
+  //         ".animate-in.fade-in.duration-100.ease-out.border-borderMain\\/50.ring-borderMain\\/50.divide-borderMain\\/50.dark\\:divide-borderMainDark\\/50.dark\\:ring-borderMainDark\\/50.dark\\:border-borderMainDark\\/50.bg-transparent"
+  //       );
+  //       if (relatedContainer) {
+  //         relatedContainer.remove();
+  //       }
+  //     },
+  //   });
+  // };
+
+  // const handleTabClick = async (tabName: ResponseTabsType) => {
+  //   if (tabName === ResponseTabs.CITATIONS) {
+  //     setIsCitationsLoading(true);
+  //     await injectScript();
+
+  //     const [tab] = await chrome.tabs.query({
+  //       active: true,
+  //       currentWindow: true,
+  //     });
+
+  //     if (tab?.id) {
+  //       await chrome.scripting.executeScript({
+  //         target: { tabId: tab.id },
+  //         func: () => {
+  //           // 👇 Click the "Sources" tab before listening
+  //           // const sourcesTab = document.querySelector(
+  //           //   "button[data-testid='answer-mode-tabs-tab-sources']",
+  //           // ) as HTMLButtonElement;
+
+  //           // if (sourcesTab) {
+  //           //   sourcesTab.click();
+  //           // }
+
+  //            const linksTab = Array.from(
+  //     document.querySelectorAll('button[role="tab"]')
+  //   ).find(
+  //     (el) => el.textContent?.trim() === 'Links'
+  //   ) as HTMLButtonElement | undefined;
+
+  //   console.log('linksTab',linksTab);
+
+  //   if (linksTab) {
+  //     linksTab.click();
+  //     console.log('✅ Links tab clicked');
+  //   } else {
+  //     console.error('❌ Links tab not found');
+  //   }
+
+  //           window.addEventListener("message", (event) => {
+  //             console.log("event", event);
+  //             if (event.source !== window) return;
+
+  //             if (event.data?.type === "CITATIONS_FOUND") {
+  //               const markdown = event.data.citations
+  //                 .map((page: any) => `[${page.title}](${page.url})`)
+  //                 .join("##NEWLINE##");
+
+  //               console.log("markdown", markdown);
+  //               chrome.runtime.sendMessage({
+  //                 type: "SAVE_CITATIONS",
+  //                 citations: event.data.citations,
+  //                 OID: event.data.OID,
+  //               });
+  //             }
+  //           });
+  //         },
+  //       });
+
+  //       const storageKey = `citations_${OID}`;
+  //       let attempts = 0;
+  //       const maxAttempts = 5;
+
+  //       const checkCitations = () => {
+  //         chrome.storage.local.get([storageKey], (result) => {
+  //           const citations = result[storageKey];
+  //           if (citations && citations.length) {
+  //             const markdown = citations
+  //               .map((page: any) => `[${page.title}](${page.url})`)
+  //               .join("##NEWLINE##");
+
+  //             setCitationsData(markdown);
+  //             setIsCitationsLoading(false);
+  //           } else if (attempts < maxAttempts) {
+  //             attempts++;
+  //             setTimeout(checkCitations, 1000);
+  //           } else {
+  //             setIsCitationsLoading(false); // Timeout fallback
+  //             setCitationsData("No citations found.");
+  //           }
+  //         });
+  //       };
+
+  //       checkCitations();
+  //     }
+  //   }
+
+  //   setActiveTab(tabName);
+  // };
 
   const handleTabClick = async (tabName: ResponseTabsType) => {
     if (tabName === ResponseTabs.CITATIONS) {
@@ -638,25 +778,41 @@ function Perplexity({
         await chrome.scripting.executeScript({
           target: { tabId: tab.id },
           func: () => {
-            // 👇 Click the "Sources" tab before listening
-            const sourcesTab = document.querySelector(
-              "button[data-testid='answer-mode-tabs-tab-sources']"
-            ) as HTMLButtonElement;
+            // 🔥 Utility to simulate a REAL user click (Radix-compatible)
+            const fireRadixClick = (el: HTMLElement) => {
+              el.dispatchEvent(
+                new MouseEvent("pointerdown", { bubbles: true }),
+              );
+              el.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+              el.dispatchEvent(new MouseEvent("mouseup", { bubbles: true }));
+              el.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+            };
 
-            if (sourcesTab) {
-              sourcesTab.click();
+            // 👇 Find the "Links" tab safely
+            const linksTab = Array.from(
+              document.querySelectorAll<HTMLButtonElement>(
+                'button[role="tab"]',
+              ),
+            ).find((el) => el.textContent?.trim() === "Links");
+
+            console.log("linksTab:", linksTab);
+
+            if (linksTab) {
+              // Ensure it is interactable
+              linksTab.removeAttribute("tabindex");
+              linksTab.style.pointerEvents = "auto";
+
+              fireRadixClick(linksTab);
+              console.log("✅ Links tab activated");
+            } else {
+              console.error("❌ Links tab not found");
             }
 
+            // 👂 Listen for citations message
             window.addEventListener("message", (event) => {
-              console.log("event", event);
               if (event.source !== window) return;
 
               if (event.data?.type === "CITATIONS_FOUND") {
-                const markdown = event.data.citations
-                  .map((page: any) => `[${page.title}](${page.url})`)
-                  .join("##NEWLINE##");
-
-                console.log("markdown", markdown);
                 chrome.runtime.sendMessage({
                   type: "SAVE_CITATIONS",
                   citations: event.data.citations,
@@ -667,6 +823,7 @@ function Perplexity({
           },
         });
 
+        // ⏳ Poll storage for citations
         const storageKey = `citations_${OID}`;
         let attempts = 0;
         const maxAttempts = 5;
@@ -674,6 +831,7 @@ function Perplexity({
         const checkCitations = () => {
           chrome.storage.local.get([storageKey], (result) => {
             const citations = result[storageKey];
+
             if (citations && citations.length) {
               const markdown = citations
                 .map((page: any) => `[${page.title}](${page.url})`)
@@ -685,7 +843,7 @@ function Perplexity({
               attempts++;
               setTimeout(checkCitations, 1000);
             } else {
-              setIsCitationsLoading(false); // Timeout fallback
+              setIsCitationsLoading(false);
               setCitationsData("No citations found.");
             }
           });
@@ -742,7 +900,7 @@ function Perplexity({
     };
 
     try {
-      await saveOrUpdate(payload);
+      await saveOrUpdate(payload as any);
       await refreshQueryData();
       goQueryList();
       alert("Saved successfully to IndexedDB!");
@@ -839,21 +997,6 @@ function Perplexity({
         <div style={{ marginBottom: "1rem" }}>
           <Button onClick={removeDiv} className="btn-remove-divs">
             Unbranding
-          </Button>
-        </div>
-
-        <div style={{ marginBottom: "1rem", width: "48%" }}>
-          {/* <Button
-            onClick={() => handleScreenshot(ResponseImage)
-
-            }
-            className="btn-screenshot"
-          >
-            Screenshot
-          </Button> */}
-
-          <Button onClick={bingUnbranding} className="btn-screenshot">
-            Bing Unbranding
           </Button>
         </div>
       </div>

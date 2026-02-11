@@ -16,15 +16,13 @@ import {
 } from "./types";
 import { saveOrUpdate } from "./utils";
 import "./Perplexity.css";
-import { extractIdFromPathForClaude } from "./helpers/chatgpt/extractId";
-// import { getStorage } from "./utils/localStorage";
 
 type ExtractedData = {
   html: string;
   text: string;
 };
 
-interface PerplexityProps {
+interface GeminiProps {
   goBack?: () => void;
   goHome: () => void;
   goQueryList: () => void;
@@ -32,19 +30,20 @@ interface PerplexityProps {
   refreshQueryData: () => Promise<void>;
 }
 
-function Claude({
+function Gemini({
   queryData,
   goHome,
   goQueryList,
   refreshQueryData,
-}: PerplexityProps) {
+}: GeminiProps) {
   const [data, setData] = useState<ExtractedData>({ html: "", text: "" });
   const [activeTab, setActiveTab] = useState<ResponseTabsType>(
-    ResponseTabs.HTML,
+    ResponseTabs.HTML
   );
   const [id, setId] = useState<string>("");
   const [html, setHtml] = useState("");
   const [markdown, setMarkdown] = useState("");
+  // const [isCitationsLoading, setIsCitationsLoading] = useState(false);
   const [isAutomationRunning, setIsAutomationRunning] = useState(false);
 
   const [citationsData, setCitationsData] = useState("");
@@ -74,131 +73,218 @@ function Claude({
     }
   }, [OID]);
 
-  const runAutomation = async () => {
-    console.log("mode", queryData?.Query);
-
+ 
+ const runAutomation = async () => {
     if (!queryData?.Query) return;
 
     try {
       setIsAutomationRunning(true);
 
-      // 1️⃣ Get active tab
       const [tab] = await chrome.tabs.query({
         active: true,
         currentWindow: true,
       });
 
-      if (!tab?.id) {
-        console.error("[Automation] No active tab found");
-        setIsAutomationRunning(false);
-        return;
-      }
+      if (!tab?.id) return;
 
+      const tabId = tab.id;
       const query = queryData.Query;
 
-      // 2️⃣ Inject script into page
+      // ✅ Step 1: Reload the tab
+      await chrome.tabs.reload(tabId);
+      console.log("🔄 Tab reloaded. Waiting for load...");
+
+      // ✅ Step 2: Wait for the tab to fully load
+      await new Promise<void>((resolve) => {
+        const onUpdated = (
+          updatedTabId: number,
+          changeInfo: chrome.tabs.TabChangeInfo
+        ) => {
+          if (updatedTabId === tabId && changeInfo.status === "complete") {
+            chrome.tabs.onUpdated.removeListener(onUpdated);
+            console.log("✅ Page fully loaded");
+            resolve();
+          }
+        };
+
+        chrome.tabs.onUpdated.addListener(onUpdated);
+      });
+
       await chrome.scripting.executeScript({
-        target: { tabId: tab.id },
-        args: [query],
+        target: { tabId },
         func: async (query: string) => {
           const delay = (ms: number) =>
             new Promise((res) => setTimeout(res, ms));
 
-          console.log("[Automation] Starting runAutomation");
+          const waitForElement = async (
+            selector: string,
+            timeout = 10000
+          ): Promise<HTMLElement | null> => {
+            const interval = 200;
+            const maxTries = timeout / interval;
+            let tries = 0;
 
-          await delay(500);
+            while (tries < maxTries) {
+              const el = document.querySelector(selector) as HTMLElement | null;
+              if (el) return el;
+              await delay(interval);
+              tries++;
+            }
 
-          // 3️⃣ Locate Claude input (contenteditable)
-          const inputRoot = document.querySelector(
-            'div[aria-label="Write your prompt to Claude"]',
-          ) as HTMLElement | null;
+            return null;
+          };
 
-          if (!inputRoot) {
-            console.log("[Automation] Input box not found");
-            return;
-          }
+          const simulateUserFlow = async () => {
+            // ✅ STEP 1: Wait for and click "New Chat" button
+            const icon = await waitForElement(
+              // '[data-test-id="side-nav-action-button-icon"]'
+              '[data-test-id="expanded-button"]'
+            );
 
-          inputRoot.focus();
+            if (icon) {
+              const clickable = icon.closest(
+                'button, [role="button"], div'
+              ) as HTMLElement | null;
 
-          // 4️⃣ Clear existing text safely
-          document.execCommand("selectAll", false);
-          document.execCommand("delete", false);
+              if (clickable) {
+                const rect = clickable.getBoundingClientRect();
+                const isVisible = rect.width > 0 && rect.height > 0;
 
-          await delay(50);
+                if (isVisible) {
+                  console.log("✅ Clicking New Chat button...");
+                  clickable.style.outline = "2px solid red"; // debug
+                  clickable.click();
+                  await delay(1000);
+                } else {
+                  console.warn("⚠️ New Chat button is not visible.");
+                }
+              } else {
+                console.error("❌ Clickable container for New Chat not found.");
+              }
+            } else {
+              console.error("❌ New Chat icon not found after waiting.");
+              return;
+            }
 
-          // 5️⃣ Insert text the way Claude understands
-          document.execCommand("insertText", false, query);
+            // ✅ STEP 2: Wait for input field
+            const inputDiv = await waitForElement(
+              'div.ql-editor.textarea.new-input-ui[contenteditable="true"]'
+            );
 
-          inputRoot.dispatchEvent(
-            new InputEvent("input", {
-              bubbles: true,
-              inputType: "insertText",
-              data: query,
-            }),
-          );
+            if (inputDiv) {
+              console.log("✅ Found input field. Typing...");
 
-          console.log("[Automation] Query inserted");
+              // inputDiv.innerHTML = `<p>${query}</p>`;
+              const escapedQuery = query.replace(
+                /\t/g,
+                "&nbsp;&nbsp;&nbsp;&nbsp;"
+              );
+              inputDiv.innerHTML = `<p>${escapedQuery}</p>`;
+              inputDiv.focus();
 
-          await delay(300);
+              const inputEvent = new InputEvent("input", {
+                bubbles: true,
+                cancelable: true,
+                inputType: "insertText",
+                data: query,
+              });
+              inputDiv.dispatchEvent(inputEvent);
 
-          // 6️⃣ Click Send (most reliable)
-          const sendBtn = document.querySelector(
-            'button[aria-label="Send message"]',
-          ) as HTMLButtonElement | null;
+              await delay(500);
+            } else {
+              console.error("❌ Input field not found after waiting.");
+              return;
+            }
 
-          if (sendBtn && !sendBtn.disabled) {
-            sendBtn.click();
-            console.log("[Automation] Send button clicked");
-          } else {
-            console.log("[Automation] Send button not found or disabled");
-          }
+            // ✅ STEP 3: Click send button (optional fallback)
+            const sendBtn = document.querySelector(
+              "button.send-button"
+            ) as HTMLButtonElement | null;
 
-          console.log("[Automation] runAutomation completed");
+            if (sendBtn && !sendBtn.disabled) {
+              console.log("✅ Clicking send button...");
+              sendBtn.click();
+            } else {
+              console.warn("⚠️ Send button not found. Sending Enter key...");
+              const enterEvent = new KeyboardEvent("keydown", {
+                key: "Enter",
+                code: "Enter",
+                bubbles: true,
+                cancelable: true,
+              });
+              inputDiv.dispatchEvent(enterEvent);
+            }
+            await delay(10000);
+            // ✅ STEP 4: If retry button exists, click it
+            const retryBtn = document.querySelector(
+              ".mdc-button.mat-mdc-button-base.retry-without-tool-button.mat-mdc-button.mat-unthemed.ng-star-inserted"
+            ) as HTMLButtonElement | null;
+            if (retryBtn) {
+              const rect = retryBtn.getBoundingClientRect();
+              const isVisible = rect.width > 0 && rect.height > 0;
+
+              if (isVisible && !retryBtn.disabled) {
+                console.log("✅ Clicking Retry button...");
+                retryBtn.style.outline = "2px solid green"; // debug highlight
+                retryBtn.click();
+                await delay(500);
+              } else {
+                console.warn("⚠️ Retry button found but not visible/enabled.");
+              }
+            } else {
+              console.log("ℹ️ Retry button not found.");
+            }
+          };
+
+          simulateUserFlow();
         },
-      });
 
-      setIsAutomationRunning(false);
-    } catch (error) {
-      console.error("[Automation] Error:", error);
+        args: [query],
+      });
+    } catch (error: any) {
+      console.error("🚨 Automation error:", error);
+    } finally {
       setIsAutomationRunning(false);
     }
   };
-
-  const triggerExtractResponse = async () => {
+  const triggerExtract = async () => {
     const [tab] = await chrome.tabs.query({
       active: true,
       currentWindow: true,
     });
 
-    if (!tab?.id) {
-      console.error("No active tab found");
-      return;
-    }
-
     chrome.scripting.executeScript(
       {
         target: { tabId: tab.id! },
         func: () => {
-          const el = document.querySelector(
-            "div.font-claude-response",
-          ) as HTMLElement | null;
-          if (!el) return { html: "No content found", text: "" };
+          // Try common selectors
+          const selectors = [
+            // "div.conversation-container",
+            "div.markdown",
+            "div.ng-trigger-immersivePanelTransitions",
+            ".ng-trigger.ng-trigger-immersivePanelTransitions.ng-star-inserted",
+            '[data-test-id="code-editor"]',
+            'div.response-container'
+          ];
 
-          const html = el.outerHTML;
-          const text = el.innerText.replace(/\n/g, "##NEWLINE##"); // replace newlines
-          console.log("text", text);
-          return { html, text };
+          let combinedHTML = "";
+
+          selectors.forEach((selector) => {
+            const elements = document.querySelectorAll(selector);
+            elements.forEach((el) => {
+              combinedHTML += el.outerHTML + "\n";
+            });
+          });
+
+          return combinedHTML || "No content found";
         },
       },
       (injectionResults) => {
         const result = injectionResults?.[0]?.result;
-        console.log("result", result);
-        if (result) {
-          setData({ html: result.html as string, text: result.text as string });
-        }
-      },
+        setData({ html: result as string, text: "" });
+      }
     );
- 
+    
   };
 
   const triggerExtractCitations = async () => {
@@ -206,53 +292,42 @@ function Claude({
       active: true,
       currentWindow: true,
     });
-    if (!tab?.id) {
-      console.error("No active tab found.");
-      return;
-    }
+    console.log("entered");
 
-    await chrome.scripting.executeScript(
+    chrome.scripting.executeScript(
       {
-        target: { tabId: tab.id },
+        target: { tabId: tab.id! },
         func: () => {
-          // Select all expandable citation containers
-          const containers = Array.from(
-            document.querySelectorAll("div.ease-out.transition-all"),
+          const citations = Array.from(
+            document.querySelectorAll("inline-source-card a")
           );
+          console.log("citations");
 
-          if (!containers.length) {
-            console.warn("No citation containers found");
-            return "";
-          }
+          const formattedCitations = citations.map((el) => {
+            const a = el as HTMLAnchorElement;
+            const title =
+              a.querySelector(".title")?.textContent?.trim() ||
+              a.textContent?.trim() ||
+              "No Title";
+            const href = a.href;
 
-          const links: string[] = [];
-
-          containers.forEach((container) => {
-            const anchors = container.querySelectorAll("a[href]");
-
-            anchors.forEach((anchor) => {
-              const paragraphs = anchor.querySelectorAll("p");
-
-              if (paragraphs.length >= 1) {
-                const title = paragraphs[0].textContent?.trim() || "No Title";
-                const href = (anchor as HTMLAnchorElement).href;
-
-                links.push(`[${title}](${href})`);
-              }
-            });
+            console.log(title, href);
+            return `[${title}](${href})`;
           });
 
-          return links.join("##NEWLINE##");
+          return formattedCitations.join("##NEWLINE##");
         },
       },
+
       (injectionResults) => {
         const result = injectionResults?.[0]?.result;
-        if (typeof result === "string") {
-          setCitationsData(result);
-        } else {
-          setCitationsData("No content found");
-        }
-      },
+        console.log("result", result);
+        console.log("type", typeof result);
+
+        setCitationsData(
+          typeof result === "string" ? result : "No content found"
+        );
+      }
     );
   };
 
@@ -266,22 +341,31 @@ function Claude({
       .trim();
     const turndownService = new TurnDown();
     const markdown = turndownService.turndown(htmlSingleLine);
-
     const markdownSingleLine = markdown
-      .split("\n") // split lines
-      .map((line) => line.trim()) // trim each line
-      .join("##NEWLINE##"); // join using your marker
-
+      .replace(/\s+/g, " ")
+      .replace(/\t/g, " ")
+      .replace(/\n/g, "##NEWLINE##")
+      .trim();
 
     setHtml(htmlSingleLine);
     setMarkdown(markdownSingleLine);
   };
-
   useEffect(() => {
     if (data.html) {
       renderOutput();
     }
   }, [data.html]);
+
+  function getChatId(url: string): string | null {
+    try {
+      const parsedUrl = new URL(url);
+      const pathSegments = parsedUrl.pathname.split("/").filter(Boolean); // remove empty
+      const chatId = pathSegments[pathSegments.length - 1];
+      return chatId || null;
+    } catch  {
+      return null;
+    }
+  }
 
   useEffect(() => {
     let currentUrl = "";
@@ -295,7 +379,7 @@ function Claude({
 
       if (newUrl !== currentUrl) {
         currentUrl = newUrl;
-        const chatId = extractIdFromPathForClaude(newUrl);
+        const chatId = getChatId(newUrl);
         if (chatId) {
           setId(chatId);
         }
@@ -333,80 +417,103 @@ function Claude({
     chrome.scripting.executeScript({
       target: { tabId: tab.id! },
       func: () => {
-        // 1. Remove user account logo
+        //Remove side bar
+        const sideNav = document.querySelector("bard-sidenav");
+        if (sideNav) sideNav.remove();
+
+        //Remove MenuIcon
         document
-          .querySelectorAll(
-            "div.flex.shrink-0.items-center.justify-center.rounded-full.font-bold.select-none.h-7.w-7.text-\\[12px\\].bg-text-200.text-bg-100",
-          )
+          .querySelectorAll(".desktop-ogb-buffer")
           .forEach((el) => el.remove());
 
-        // 2. Remove Claude logo at the bottom of the response
+        //change query bg
+
+        // document
+        //   .querySelectorAll(".user-query-bubble-with-background")
+        //   .forEach((el) => {
+        //     (el as HTMLElement).style.backgroundColor = "#E9E9E9";
+        //   });
+
+        // Remove top bar
         document
-          .querySelectorAll(
-            "div.ml-1.mt-0\\.5.flex.items-center.transition-transform.duration-300.ease-out",
-          )
+          .querySelectorAll(".side-nav-menu-button.with-pill-ui")
           .forEach((el) => el.remove());
 
-        // 3. Remove share div at the top right
-        // const shareDiv = document.querySelector("div.right-3.flex.gap-2");
-        // if (shareDiv) shareDiv.remove();
-
-        const newShareDiv = document.querySelector(
-          'button[data-testid="wiggle-controls-actions-share"]',
-        );
-
-        if (newShareDiv) newShareDiv.remove();
-
-        // 4. Change query box background color to grey
-        const queryBox = document.querySelector(
-          "div.group.relative.inline-flex.gap-2.bg-bg-300.rounded-xl",
-        ) as HTMLElement;
-        if (queryBox) queryBox.style.backgroundColor = "#e9e9e9";
-
-        // 5. Remove header bar
-        const headerBar = document.querySelector(
-          "header.flex.w-full.bg-bg-100.sticky.top-0",
-        );
-        if (headerBar) headerBar.remove();
-
-        // 6. Remove input field container
-        const inputField = document.querySelector(
-          "div.sticky.bottom-0.mx-auto.w-full.pt-6.z-\\[5\\]",
-        );
-        if (inputField) inputField.remove();
-
-        // 7. Remove response option buttons (like 👍 👎, Regenerate)
         document
-          .querySelectorAll(
-            "div.text-text-300.flex.items-stretch.justify-between",
-          )
+          .querySelectorAll('[data-test-id="bard-mode-switcher"]')
           .forEach((el) => el.remove());
 
-        // 8. Remove sidebar by aria-label
-        const sidebarAria = document.querySelector('[aria-label="Sidebar"]');
-        if (sidebarAria) sidebarAria.remove();
+        document
+          .querySelectorAll('[aria-label^="Google Account:"]')
+          .forEach((el) => el.remove());
 
-        // 9. Remove sidebar by class name
-        const sidebarClass = document.querySelector(
-          "div.h-screen.flex.flex-col.gap-3.pb-2.px-0.fixed.top-0.left-0",
+        document
+          .querySelectorAll('[data-test-id="pillbox"]')
+          .forEach((el) => el.remove());
+
+        document
+          .querySelectorAll('[data-test-id="overflow-container"]')
+          .forEach((el) => el.remove());
+
+        //Input container
+        document
+          .querySelectorAll("input-container")
+          .forEach((el) => el.remove());
+
+        // Response Options buttons
+        document
+          .querySelectorAll(".response-container-footer")
+          .forEach((el) => el.remove());
+
+        // Gemini logo
+        document
+          .querySelectorAll(".avatar-component")
+          .forEach((el) => el.remove());
+
+        // Show thinking
+
+        document
+          .querySelectorAll('[data-test-id="thoughts-header-button"]')
+          .forEach((el) => el.remove());
+
+        //Response Footer
+
+        document
+          .querySelectorAll(".response-footer")
+          .forEach((el) => el.remove());
+
+        // change text color
+
+        // document.querySelectorAll("*").forEach((el: any) => {
+        //   el.style.color = "#555";
+        // });
+
+        //link bg color
+
+        document
+          .querySelectorAll("button.button.ng-star-inserted")
+          .forEach((el) => {
+            (el as HTMLElement).style.backgroundColor = "#E9E9E9"; // or 'unset'
+          });
+
+        // remove conversion popup
+        const promo = document.querySelector(
+          "contextual-discovery-response-promotion.contextual-discovery-response-promotion"
         );
-        if (sidebarClass) sidebarClass.remove();
+        if (promo) promo.remove();
 
-        //header of codeblock
         document
-          .querySelector(
-            ".pr-2.pl-3.flex.items-center.justify-between.gap-2.select-none.py-2",
-          )
-          ?.remove();
-
-        //Remove logo
+          .querySelectorAll('button[data-test-id="view-report-button"]')
+          .forEach((el) => {
+            (el as HTMLElement).style.backgroundColor = "#E9E9E9"; // or 'unset'
+          });
         document
-          .querySelector(
-            "div.ml-1.flex.items-center.transition-transform.duration-300.ease-out.mt-6",
-          )
-          ?.remove();
+          .querySelectorAll(".immersive-editor-quick-actions-panel")
+          .forEach((el) => el.remove());
 
-        document.body.style.backgroundColor = "#fff";
+        document
+          .querySelectorAll(".action-buttons")
+          .forEach((el) => el.remove());
       },
     });
   };
@@ -443,10 +550,8 @@ function Claude({
     const timestamp = formattedDate;
 
     const isComplete =
-      Boolean(id && OID && Query && timestamp) &&
-      (responseText.trim() !== "" || responseHTML.trim() !== "");
-
-    const responseCode = isComplete ? "Success" : "Pending";
+      id && OID && Query && responseText && responseHTML && timestamp;
+    const responseCode = isComplete ? "Success" : "";
 
     const payload = {
       ChatID: id,
@@ -459,8 +564,6 @@ function Claude({
       ResponseImage,
       ResponseCode: responseCode,
     };
-
-    console.log("payload", payload);
 
     try {
       await saveOrUpdate(payload as any);
@@ -476,8 +579,7 @@ function Claude({
   const handleSave = async () => {
     if (!data.html) {
       console.log("Triggering extract since data.html is empty...");
-      await triggerExtractResponse();
-      await triggerExtractCitations();
+      await triggerExtract();
       setTimeout(() => {
         savePayload();
       }, 1000);
@@ -488,15 +590,13 @@ function Claude({
 
   const startExtract = async () => {
     setIsAutomationRunning(false);
-    console.log("entered");
-    await triggerExtractResponse();
-    console.log("exit");
+    await triggerExtract();
     await triggerExtractCitations();
   };
 
+  console.log("citationsData", citationsData);
   console.log("active tab", activeTab);
-  console.log("response tab", ResponseTabs);
-  console.log("html", html);
+  console.log("ResponseTabs", ResponseTabs);
 
   return (
     <div className="query-details-container">
@@ -563,22 +663,23 @@ function Claude({
             <CopyButton value={formattedDate} />
           </div>
         </div>
-
-        <div className="field-container">
-          <span className="field-text">Response Image Name:</span>
-          <div className="value-container">
-            <span className="query-field">
-              {ResponseImage.replace(/\.png$/, "")}
-            </span>
-            <CopyButton value={ResponseImage.replace(/\.png$/, "")} />
-          </div>
-        </div>
       </div>
       <div className="value-container">
         <div style={{ marginBottom: "1rem" }}>
           <Button onClick={removeDiv} className="btn-remove-divs">
-            Remove Related Divs
+            Unbranding
           </Button>
+        </div>
+
+        <div style={{ marginBottom: "1rem", width: "48%" }}>
+          {/* <Button
+            onClick={() => handleScreenshot(ResponseImage)
+
+            }
+            className="btn-screenshot"
+          >
+            Screenshot
+          </Button> */}
         </div>
       </div>
 
@@ -633,16 +734,13 @@ function Claude({
           </div>
         </>
       ) : (
-        <div
-          className="value-container"
-          style={{ flexDirection: "column", gap: "1rem" }}
-        >
+        <div className="value-container">
           <div style={{ width: "47%" }}>
             <Button
               onClick={runAutomation}
-              buttonText="Run Automation"
+              buttonText={"Run Automation"}
+              style={{ marginBottom: "1rem" }}
               className="btn-run-automation"
-              style={{ width: "100%" }}
               disabled={isAutomationRunning}
             />
           </div>
@@ -650,8 +748,8 @@ function Claude({
             <Button
               buttonText="Start Extract"
               onClick={startExtract}
+              style={{ marginBottom: "1rem", width: "45%" }}
               className="btn-start-extract"
-              style={{ width: "100%" }}
             />
           </div>
         </div>
@@ -659,4 +757,5 @@ function Claude({
     </div>
   );
 }
-export default Claude;
+
+export default Gemini;
