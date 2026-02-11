@@ -1,8 +1,7 @@
 {
   "manifest_version": 3,
-  "name": "NUI Extractor",
-  "version": "8.6.1",
-  "description": "A Chrome extension that integrates with ChatGPT, Perplexity, Copilot, Claude and BIC to provide AI-powered assistance. Automated the query execution, extracted citations, removed irrelevant elements from the page, added a screenshot capture feature and Changed the remove div as JSON format.claude(opus and sonnet)- code block",
+  "name": "MS Compete",
+  "version": "1.0.0",
   "permissions": [
     "storage",
     "scripting",
